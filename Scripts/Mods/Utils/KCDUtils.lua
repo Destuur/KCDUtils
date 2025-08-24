@@ -3,12 +3,10 @@ KCDUtils.Mods = KCDUtils.Mods or {}
 
 local mods = KCDUtils.Mods
 
-System.LogAlways("KCDUtils initializing...")
-
 function KCDUtils.Init(modname)
-    System.LogAlways("KCDUtils.Init called with modname: " .. tostring(modname))
+
     mods[modname] = mods[modname] or {}
-    System.LogAlways("KCDUtils mod name set to: " .. modname)
+
     local utils = {
         "Buff",
         "Config",
@@ -23,7 +21,6 @@ function KCDUtils.Init(modname)
         "Player",
         "Quest",
         "Safe",
-        "Script",
         "String",
         "Table",
         "Time",
@@ -40,5 +37,3 @@ function KCDUtils.Init(modname)
         end
     end
 end
-
-System.LogAlways("KCDUtils initialized")

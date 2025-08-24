@@ -1,6 +1,9 @@
 ---@class KCDUtilsString
 local S = KCDUtils and KCDUtils.String or {}
 
+--- Returns the mod name associated with a given DB instance.
+---@param db table The database instance
+---@return string|nil The mod name or nil if not found
 function S.GetModNameFromDB(db)
     if db == nil then
         return nil
