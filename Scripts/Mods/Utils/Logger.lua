@@ -28,19 +28,32 @@ function FactoryLogger.Factory(modName)
 
     --- Logs a message with the mod name.
     --- @param message string
-    instance.Log = function(message) return FactoryLogger.Log(modName, message) end
+    local function Log(message)
+        return FactoryLogger.Log(modName, message)
+    end
 
     --- Logs an info message.
     --- @param message string
-    instance.Info = function(message) return FactoryLogger.Info(modName, message) end
+    local function Info(message)
+        return FactoryLogger.Info(modName, message)
+    end
 
     --- Logs a warning message.
     --- @param message string
-    instance.Warn = function(message) return FactoryLogger.Warn(modName, message) end
+    local function Warn(message)
+        return FactoryLogger.Warn(modName, message)
+    end
 
     --- Logs an error message.
     --- @param message string
-    instance.Error = function(message) return FactoryLogger.Error(modName, message) end
+    local function Error(message)
+        return FactoryLogger.Error(modName, message)
+    end
+
+    instance.Log = Log
+    instance.Info = Info
+    instance.Warn = Warn
+    instance.Error = Error
 
     cache[modName] = instance
     return instance

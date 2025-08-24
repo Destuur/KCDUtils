@@ -1,8 +1,11 @@
+--- Represents the KCDUtils library
 KCDUtils = KCDUtils or {}
 KCDUtils.Mods = KCDUtils.Mods or {}
 
 local mods = KCDUtils.Mods
 
+--- Initializes the KCDUtils library by loading all utility modules.
+--- @param modname string The name of the mod
 function KCDUtils.Init(modname)
 
     mods[modname] = mods[modname] or {}

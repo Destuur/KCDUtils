@@ -2,17 +2,16 @@ SampleMod = SampleMod or {}
 
 local mod = {
     Name = "SampleMod",
-    DB = nil,
     Logger = nil,
-    Config = nil
+    DB = nil,
 }
 
 local function LoadScripts()
     Script.ReloadScript("Scripts/Mods/Utils/KCDUtils.lua")
-    KCDUtils.Init(mod.Name)
 end
 
 local function LoadUtils()
+    KCDUtils.Init(mod.Name)
     mod.DB = KCDUtils.DB.Factory(mod.Name)
     mod.Logger = KCDUtils.Logger.Factory(mod.Name)
 end
