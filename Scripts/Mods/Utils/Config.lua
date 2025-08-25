@@ -5,7 +5,6 @@ local cache = {}
 
 ---Factory for creating/retrieving a config instance for a given mod.
 ---@param modName string Unique mod identifier
----@return table configInstance
 function FactoryConfig.Factory(modName)
     if cache[modName] then
         return cache[modName]
@@ -64,6 +63,14 @@ function FactoryConfig.Factory(modName)
         db.Set(key, value)
     end
 
+    --- Persists the entire current config state into the DB.
+    function instance:SetAll()
+        local db = KCDUtils.DB.Factory(self.Name)
+        for k, v in pairs(self.Values) do
+            db.Set(k, v)
+        end
+    end
+
     --- Dumps current config values (for debugging/logging).
     function instance:Dump()
         local db = KCDUtils.DB.Factory(self.Name)
@@ -74,4 +81,5 @@ function FactoryConfig.Factory(modName)
     return instance
 end
 
+---@type KCDUtilsConfig
 KCDUtils.Config = FactoryConfig

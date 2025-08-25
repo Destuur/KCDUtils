@@ -4,19 +4,19 @@ local FactoryLogger = KCDUtils and KCDUtils.Logger or {}
 local cache = {}
 
 function FactoryLogger.Log(modName, message)
-    System.LogAlways("$8[" .. modName .. "] $0" .. message)
+    System.LogAlways("$8[" .. modName .. "] $1" .. message)
 end
 
 function FactoryLogger.Info(modName, message)
-    System.LogAlways("$8[" .. modName .. "]$2[INFO] $0" .. message)
+    System.LogAlways("$8[" .. modName .. "]$3[INFO] $1" .. message)
 end
 
 function FactoryLogger.Warn(modName, message)
-    System.LogAlways("$8[" .. modName .. "]$4[WARN] $0" .. message)
+    System.LogAlways("$8[" .. modName .. "]$6[WARN] $1" .. message)
 end
 
 function FactoryLogger.Error(modName, message)
-    System.LogAlways("$8[" .. modName .. "]$1[ERROR] $0" .. message)
+    System.LogAlways("$8[" .. modName .. "]$4[ERROR] $1" .. message)
 end
 
 function FactoryLogger.Factory(modName)
