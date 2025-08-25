@@ -30,10 +30,10 @@ function FactoryConfig.Factory(modName)
     function instance:Load()
         local db = KCDUtils.DB.Factory(self.Name)
         for key, default in pairs(self.Defaults) do
-            local val = db.Get(key)
+            local val = db:Get(key)
             if val == nil then
                 self.Values[key] = default
-                db.Set(key, default) -- persist default into DB
+                db:Set(key, default) -- persist default into DB
             else
                 self.Values[key] = val
             end
@@ -60,21 +60,21 @@ function FactoryConfig.Factory(modName)
     function instance:Set(key, value)
         self.Values[key] = value
         local db = KCDUtils.DB.Factory(self.Name)
-        db.Set(key, value)
+        db:Set(key, value)
     end
 
     --- Persists the entire current config state into the DB.
     function instance:SetAll()
         local db = KCDUtils.DB.Factory(self.Name)
         for k, v in pairs(self.Values) do
-            db.Set(k, v)
+            db:Set(k, v)
         end
     end
 
     --- Dumps current config values (for debugging/logging).
     function instance:Dump()
         local db = KCDUtils.DB.Factory(self.Name)
-        db.Dump()
+        db:Dump()
     end
 
     cache[modName] = instance

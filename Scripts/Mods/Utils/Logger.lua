@@ -3,57 +3,40 @@ local FactoryLogger = KCDUtils and KCDUtils.Logger or {}
 
 local cache = {}
 
-function FactoryLogger.Log(modName, message)
-    System.LogAlways("$8[" .. modName .. "] $1" .. message)
-end
-
-function FactoryLogger.Info(modName, message)
-    System.LogAlways("$8[" .. modName .. "]$3[INFO] $1" .. message)
-end
-
-function FactoryLogger.Warn(modName, message)
-    System.LogAlways("$8[" .. modName .. "]$6[WARN] $1" .. message)
-end
-
-function FactoryLogger.Error(modName, message)
-    System.LogAlways("$8[" .. modName .. "]$4[ERROR] $1" .. message)
-end
-
+---Factory for creating/retrieving a Logger instance for a given mod.
+---@param modName string Unique mod identifier
 function FactoryLogger.Factory(modName)
     if cache[modName] then
         return cache[modName]
     end
 
-    local instance = {}
+    local instance = {
+        Name = modName
+    }
 
     --- Logs a message with the mod name.
     --- @param message string
-    local function Log(message)
-        return FactoryLogger.Log(modName, message)
+    function instance:Log(message)
+        System.LogAlways("$8[" .. self.Name .. "] $1" .. message)
     end
 
-    --- Logs an info message.
+    --- Logs an info message with the mod name.
     --- @param message string
-    local function Info(message)
-        return FactoryLogger.Info(modName, message)
+    function instance:Info(message)
+        System.LogAlways("$8[" .. self.Name .. "]$3[INFO] $1" .. message)
     end
 
-    --- Logs a warning message.
+    --- Logs a warning message with the mod name.
     --- @param message string
-    local function Warn(message)
-        return FactoryLogger.Warn(modName, message)
+    function instance:Warn(message)
+        System.LogAlways("$8[" .. self.Name .. "]$6[WARN] $1" .. message)
     end
 
-    --- Logs an error message.
+    --- Logs an error message with the mod name.
     --- @param message string
-    local function Error(message)
-        return FactoryLogger.Error(modName, message)
+    function instance:Error(message)
+        System.LogAlways("$8[" .. self.Name .. "]$4[ERROR] $1" .. message)
     end
-
-    instance.Log = Log
-    instance.Info = Info
-    instance.Warn = Warn
-    instance.Error = Error
 
     cache[modName] = instance
     return instance

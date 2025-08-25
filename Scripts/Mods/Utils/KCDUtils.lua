@@ -14,7 +14,7 @@ function KCDUtils.Init(modname)
         "Config",
         "DB",
         "Debug",
-        "Events",
+        "Event",
         "Input",
         "Logger",
         "Math",
