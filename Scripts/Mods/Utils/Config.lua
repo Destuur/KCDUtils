@@ -41,6 +41,7 @@ function FactoryConfig.Factory(modName)
         self.Loaded = true
     end
 
+
     --- Retrieves a config value.
     --- @param key string
     --- @param fallback any (optional) fallback if neither value nor default exists

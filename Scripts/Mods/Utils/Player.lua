@@ -1,1 +1,2 @@
-KCDUtils.Player = KCDUtils.Player or {}
+---@class KCDUtilsPlayer
+KCDUtils.Player = KCDUtils and KCDUtils.Player or {}

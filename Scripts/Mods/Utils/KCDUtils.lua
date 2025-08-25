@@ -11,6 +11,7 @@ function KCDUtils.Init(modname)
     mods[modname] = mods[modname] or {}
 
     local utils = {
+        "Command",
         "Config",
         "DB",
         "Debug",
@@ -21,6 +22,7 @@ function KCDUtils.Init(modname)
         "Path",
         "Player",
         "Safe",
+        "Script",
         "String",
         "Table",
         "Time",
