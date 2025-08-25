@@ -10,10 +10,11 @@ function KCDUtils.Initialize()
         KCDUtils.initiated = true
         System.LogAlways("KCDUtils: Initializing...")
         local utils = {
+            "Command",
             "Config",
             "DB",
             "Debug",
-            "Events",
+            "Event",
             "Input",
             "Logger",
             "Math",
