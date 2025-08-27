@@ -58,9 +58,7 @@ jobs:
           # mod.manifest aktualisieren
           xmlstarlet ed -L -u "//info/version" -v "$NEW_VERSION" mod.manifest
 
-          # README aktualisieren:
-          # 1) Falls Platzhalter verwendet wird, ersetzen
-          # 2) Sonst die alte Version durch die neue ersetzen (nur '.' escapen)
+          # README aktualisieren
           if [ -f README.md ]; then
             if grep -q "{{NEW_VERSION}}" README.md; then
               sed -i "s/{{NEW_VERSION}}/${NEW_VERSION}/g" README.md
@@ -87,29 +85,30 @@ jobs:
           git push origin HEAD:main
           git push origin --tags
 
-      - name: Prepare folder for ZIP
+      - name: Prepare folder for ZIP & PAK
         run: |
           rm -rf temp_kcdutils
-          mkdir -p temp_kcdutils/kcdutils
+          mkdir -p temp_kcdutils/kcdutils/Data
+
           shopt -s dotglob
+          # Alle Dateien außer temp_kcdutils, .git, .github kopieren
           for f in *; do
             if [[ "$f" != "temp_kcdutils" && "$f" != ".git" && "$f" != ".github" ]]; then
-              cp -r "$f" temp_kcdutils/kcdutils/
+              cp -r "$f" temp_kcdutils/kcdutils/Data/kcdutils/
             fi
           done
 
-      - name: Create ZIP
+          # PAK-Datei aus Data/kcdutils erstellen (0-Kompression)
+          cd temp_kcdutils/kcdutils/Data
+          zip -r -0 kcdutils.pak kcdutils
+          cd ../../..
+
+      - name: Create ZIP including PAK
         env:
           NEW_VERSION: ${{ steps.version.outputs.new_version }}
         run: |
           cd temp_kcdutils
-          zip -r "../${ZIP_NAME}-${NEW_VERSION}.zip" kcdutils/
-          cd ..
-
-      - name: Create .pak archive
-        run: |
-          cd temp_kcdutils
-          zip -r -0 "kcdutils-${{ steps.version.outputs.new_version }}.pak" kcdutils
+          zip -r "../${ZIP_NAME}-${NEW_VERSION}.zip" kcdutils
           cd ..
 
       - name: Create GitHub Release
@@ -117,7 +116,5 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.new_version }}
           name: Release ${{ steps.version.outputs.new_version }}
-          files: |
-            ${{ env.ZIP_NAME }}-${{ steps.version.outputs.new_version }}.zip
-            temp_kcdutils/kcdutils-${{ steps.version.outputs.new_version }}.pak
+          files: ${{ env.ZIP_NAME }}-${{ steps.version.outputs.new_version }}.zip
           token: ${{ secrets.GITHUB_TOKEN }}
