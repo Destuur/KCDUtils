@@ -15,12 +15,13 @@ jobs:
       contents: write
 
     steps:
-      # 1. Checkout repo
+      # 1. Checkout repository with token
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_TOKEN }}
           fetch-depth: 0
+          persist-credentials: true
 
       # 2. Install dependencies
       - name: Install dependencies
@@ -32,28 +33,17 @@ jobs:
       - name: Determine new version
         id: version
         run: |
-          # Aktuelle Version aus mod.manifest lesen
-          CURRENT=$(xmlstarlet sel -t -v "//info/version" mod.manifest || echo "1.0.0")
-          echo "Current version: $CURRENT"
-
-          # Letztes Tag finden
+          CURRENT=$(xmlstarlet sel -t -v "//info/version" mod.manifest || echo "0.0.0")
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           
           if [ -z "$LAST_TAG" ]; then
-              echo "No tags found, using all commits."
               COMMITS=$(git log --pretty=format:%s)
           else
-              echo "Last tag: $LAST_TAG"
               COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:%s)
           fi
           
-          echo "Commits since last tag:"
-          echo "$COMMITS"
-
-          # Version parsen
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
 
-          # Version basierend auf Commit-Messages bestimmen
           if echo "$COMMITS" | grep -iq "\[major\]"; then
               NEW_MAJOR=$((MAJOR + 1))
               NEW_MINOR=0
@@ -69,42 +59,34 @@ jobs:
           fi
 
           NEW_VERSION="${NEW_MAJOR}.${NEW_MINOR}.${NEW_PATCH}"
-          echo "New version: $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
 
-      # 4. Update version in files
+      # 4. Update files
       - name: Update version in files
         run: |
-          # Version in mod.manifest aktualisieren
           xmlstarlet ed -L -u "//info/version" -v "${{ steps.version.outputs.new_version }}" mod.manifest
-          
-          # Version in README.md aktualisieren (falls {{NEW_VERSION}} placeholder existiert)
           if [ -f README.md ]; then
               sed -i "s/{{NEW_VERSION}}/${{ steps.version.outputs.new_version }}/g" README.md
           fi
 
-      # 5. Commit and push version bump
-      - name: Commit and push version bump
+      # 5. Commit & push on temporary branch
+      - name: Commit & push version bump
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      
-          git remote set-url origin https://${{ secrets.GH_TOKEN }}@github.com/Destuur/KCDUtils.git
-      
-          git add mod.manifest
-          if [ -f README.md ]; then
-              git add README.md
-          fi
-      
+
+          git checkout -b "version-bump-${{ steps.version.outputs.new_version }}"
+          git add mod.manifest README.md
           if ! git diff --staged --quiet; then
               git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
-              git push origin main
+              git push origin "version-bump-${{ steps.version.outputs.new_version }}"
           else
               echo "No changes to commit"
           fi
 
-      # 6. Create tag
-      - name: Create and push tag
+      # 6. Create tag on temporary branch
+      - name: Create tag
         run: |
           git tag -a "${{ steps.version.outputs.new_version }}" -m "Release ${{ steps.version.outputs.new_version }}"
           git push origin "${{ steps.version.outputs.new_version }}"
@@ -113,11 +95,7 @@ jobs:
       - name: Prepare kcdutils folder
         run: |
           mkdir -p temp_kcdutils/kcdutils
-          
-          # Alle Dateien außer temp_kcdutils, .github und .git kopieren
           find . -maxdepth 1 -type f ! -path "./.*" -exec cp {} temp_kcdutils/kcdutils/ \;
-          
-          # Alle Unterordner außer temp_kcdutils, .github und .git kopieren
           for dir in */; do
               if [[ "$dir" != "temp_kcdutils/" && "$dir" != ".git/" && "$dir" != ".github/" ]]; then
                   cp -r "$dir" temp_kcdutils/kcdutils/
