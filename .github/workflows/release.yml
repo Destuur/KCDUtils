@@ -1,35 +1,42 @@
-name: Build KCDUtils ZIP on PR Merge to Main
+name: Build KCDUtils ZIP on Push to Main
 
 on:
-  pull_request:
-    types: [closed]       # Trigger nur bei geschlossenen PRs
+  push:
     branches:
       - main
 
+env:
+  ZIP_NAME: kcdutils
+
 jobs:
   build-zip:
-    if: github.event.pull_request.merged == true   # nur wenn PR wirklich gemerged wurde
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      # 1. Checkout repo mit PAT
-      - uses: actions/checkout@v3
+      # 1. Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_TOKEN }}
-          persist-credentials: true
           fetch-depth: 0
 
       # 2. Install dependencies
       - name: Install dependencies
-        run: sudo apt-get install -y zip xmlstarlet
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip xmlstarlet
 
-      # 3. Bump version based on commit messages
+      # 3. Determine new version
       - name: Determine new version
         id: version
         run: |
-          CURRENT=$(xmlstarlet sel -t -v "//info/version" mod.manifest)
+          # Aktuelle Version aus mod.manifest lesen
+          CURRENT=$(xmlstarlet sel -t -v "//info/version" mod.manifest || echo "1.0.0")
           echo "Current version: $CURRENT"
 
+          # Letztes Tag finden
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           
           if [ -z "$LAST_TAG" ]; then
@@ -43,57 +50,93 @@ jobs:
           echo "Commits since last tag:"
           echo "$COMMITS"
 
+          # Version parsen
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
 
-          NEW_MAJOR=$MAJOR
-          NEW_MINOR=$MINOR
-          NEW_PATCH=$PATCH
-
+          # Version basierend auf Commit-Messages bestimmen
           if echo "$COMMITS" | grep -iq "\[major\]"; then
               NEW_MAJOR=$((MAJOR + 1))
               NEW_MINOR=0
               NEW_PATCH=0
           elif echo "$COMMITS" | grep -iq "\[minor\]"; then
+              NEW_MAJOR=$MAJOR
               NEW_MINOR=$((MINOR + 1))
               NEW_PATCH=0
           else
+              NEW_MAJOR=$MAJOR
+              NEW_MINOR=$MINOR
               NEW_PATCH=$((PATCH + 1))
           fi
 
-          NEW_VERSION="$NEW_MAJOR.$NEW_MINOR.$NEW_PATCH"
+          NEW_VERSION="${NEW_MAJOR}.${NEW_MINOR}.${NEW_PATCH}"
           echo "New version: $NEW_VERSION"
-
-          # Update mod.manifest & README
-          xmlstarlet ed -L -u "//info/version" -v "$NEW_VERSION" mod.manifest
-          sed -i "s/{{NEW_VERSION}}/$NEW_VERSION/g" README.md
-
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      # 4. Commit + push version bump + tag
-      - name: Commit version bump and push tag
+      # 4. Update version in files
+      - name: Update version in files
         run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add mod.manifest README.md
-          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}" || echo "No changes to commit"
-          git tag ${{ steps.version.outputs.new_version }}
-          git push origin main --tags
+          # Version in mod.manifest aktualisieren
+          xmlstarlet ed -L -u "//info/version" -v "${{ steps.version.outputs.new_version }}" mod.manifest
+          
+          # Version in README.md aktualisieren (falls {{NEW_VERSION}} placeholder existiert)
+          if [ -f README.md ]; then
+              sed -i "s/{{NEW_VERSION}}/${{ steps.version.outputs.new_version }}/g" README.md
+          fi
 
-      # 5. Prepare ZIP folder
+      # 5. Commit and push version bump
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          git add mod.manifest
+          if [ -f README.md ]; then
+              git add README.md
+          fi
+          
+          # Nur commit wenn Änderungen existieren
+          if ! git diff --staged --quiet; then
+              git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
+              git push origin main
+          else
+              echo "No changes to commit"
+          fi
+
+      # 6. Create tag
+      - name: Create and push tag
+        run: |
+          git tag -a "${{ steps.version.outputs.new_version }}" -m "Release ${{ steps.version.outputs.new_version }}"
+          git push origin "${{ steps.version.outputs.new_version }}"
+
+      # 7. Prepare ZIP folder
       - name: Prepare kcdutils folder
         run: |
           mkdir -p temp_kcdutils/kcdutils
-          shopt -s extglob
-          cp -r !(temp_kcdutils|.github|.git) temp_kcdutils/kcdutils/
+          
+          # Alle Dateien außer temp_kcdutils, .github und .git kopieren
+          find . -maxdepth 1 -type f ! -path "./.*" -exec cp {} temp_kcdutils/kcdutils/ \;
+          
+          # Alle Unterordner außer temp_kcdutils, .github und .git kopieren
+          for dir in */; do
+              if [[ "$dir" != "temp_kcdutils/" && "$dir" != ".git/" && "$dir" != ".github/" ]]; then
+                  cp -r "$dir" temp_kcdutils/kcdutils/
+              fi
+          done
 
-      # 6. Create ZIP
+      # 8. Create ZIP
       - name: Create ZIP
-        run: zip -r kcdutils-${{ steps.version.outputs.new_version }}.zip temp_kcdutils/kcdutils
+        run: |
+          cd temp_kcdutils
+          zip -r "../${{ env.ZIP_NAME }}-${{ steps.version.outputs.new_version }}.zip" kcdutils/
+          cd ..
 
-      # 7. Create GitHub Release
+      # 9. Create GitHub Release
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          files: kcdutils-${{ steps.version.outputs.new_version }}.zip
+          files: ${{ env.ZIP_NAME }}-${{ steps.version.outputs.new_version }}.zip
           tag_name: ${{ steps.version.outputs.new_version }}
-          token: ${{ secrets.GH_TOKEN }}
+          name: Release ${{ steps.version.outputs.new_version }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
