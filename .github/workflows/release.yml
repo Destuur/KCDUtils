@@ -86,29 +86,28 @@ jobs:
 
       - name: Prepare folder for ZIP and create .pak
         run: |
-          rm -rf temp_kcdutils
-          mkdir -p temp_kcdutils/kcdutils/Data
+          rm -rf temp__kcdutils
+          mkdir -p temp__kcdutils/_kcdutils/Data
 
-          # .pak erstellen (nur Inhalt des kcdutils-Ordners, Pfade innerhalb starten bei Scripts/...)
+          # .pak erstellen
           python3 - <<EOF
-          
           import zipfile, os
           base_folder = "Data/kcdutils"  # der Ordner, dessen Inhalt in .pak soll
-          pak_file = "temp_kcdutils/kcdutils/Data/kcdutils.pak"
+          pak_file = "temp__kcdutils/_kcdutils/Data/kcdutils.pak"
           os.makedirs(os.path.dirname(pak_file), exist_ok=True)
           with zipfile.ZipFile(pak_file, 'w', compression=zipfile.ZIP_STORED) as archive:
               for root, dirs, files in os.walk(base_folder):
                   for file in files:
                       abs_path = os.path.join(root, file)
-                      rel_path = os.path.relpath(abs_path, base_folder)  # relativer Pfad innerhalb .pak
+                      rel_path = os.path.relpath(abs_path, base_folder)
                       archive.write(abs_path, rel_path)
           EOF
 
-          # Restliche Dateien für ZIP vorbereiten
+          # Restliche Dateien in _kcdutils packen
           shopt -s dotglob
           for f in *; do
-            if [[ "$f" != "temp_kcdutils" && "$f" != ".git" && "$f" != ".github" ]]; then
-              cp -r "$f" temp_kcdutils/kcdutils/
+            if [[ "$f" != "temp__kcdutils" && "$f" != ".git" && "$f" != ".github" ]]; then
+              cp -r "$f" temp__kcdutils/_kcdutils/
             fi
           done
 
@@ -116,8 +115,8 @@ jobs:
         env:
           NEW_VERSION: ${{ steps.version.outputs.new_version }}
         run: |
-          cd temp_kcdutils
-          zip -r "../${ZIP_NAME}.zip" kcdutils/
+          cd temp__kcdutils
+          zip -r "../${ZIP_NAME}.zip" _kcdutils/
           cd ..
 
       - name: Create GitHub Release
