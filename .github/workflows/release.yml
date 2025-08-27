@@ -84,15 +84,19 @@ jobs:
           git push origin HEAD:main
           git push origin --tags
 
-      - name: Prepare folder for ZIP
+      - name: Prepare folder for ZIP and create .pak
         run: |
+          # Temp-Ordner leeren und vorbereiten
           rm -rf temp_kcdutils
           mkdir -p temp_kcdutils/kcdutils/Data
 
-          # .pak nur aus Subfolder kcdutils erstellen
-          zip -r -0 temp_kcdutils/kcdutils/Data/kcdutils.pak Data/kcdutils/*
+          # .pak nur aus Inhalt des kcdutils-Ordners erstellen
+          # Pfad im .pak startet direkt mit Scripts/...
+          cd Data
+          zip -r -0 ../temp_kcdutils/kcdutils/Data/kcdutils.pak kcdutils/*
+          cd ..
 
-          # Restliche Dateien in das ZIP vorbereiten
+          # Restliche Dateien ins ZIP vorbereiten
           shopt -s dotglob
           for f in *; do
             if [[ "$f" != "temp_kcdutils" && "$f" != ".git" && "$f" != ".github" ]]; then
@@ -107,6 +111,7 @@ jobs:
           cd temp_kcdutils
           zip -r "../${ZIP_NAME}-${NEW_VERSION}.zip" kcdutils/
           cd ..
+
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
