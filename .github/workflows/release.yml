@@ -15,6 +15,7 @@ jobs:
         with:
           token: ${{ secrets.GH_TOKEN }}
           persist-credentials: true 
+          fetch-depth: 0
 
       # 2. Install dependencies
       - name: Install dependencies
