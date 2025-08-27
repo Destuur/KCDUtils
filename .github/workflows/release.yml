@@ -1,4 +1,4 @@
-name: Build KCDUtils ZIP on Merge to Main
+name: Build KCD Utils ZIP on Merge to Main
 
 on:
   push:
