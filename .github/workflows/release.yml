@@ -63,8 +63,16 @@ jobs:
       - name: Update README version
         run: |
           sed -i "s/{{NEW_VERSION}}/${{ steps.version.outputs.new_version }}/g" README.md
+          
+      # 2. Tag the new version
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git tag ${{ steps.version.outputs.new_version }}
+          git push origin ${{ steps.version.outputs.new_version }}
 
-      # 2. Prepare ZIP folder
+      # 3. Prepare ZIP folder
       - name: Prepare kcdutils folder
         run: |
           mkdir -p temp_kcdutils/kcdutils   # -p erstellt alle notwendigen Verzeichnisse
@@ -74,7 +82,7 @@ jobs:
       - name: Create ZIP
         run: zip -r kcdutils-${{ steps.version.outputs.new_version }}.zip temp_kcdutils/kcdutils
 
-      # 3. Create GitHub Release
+      # 4. Create GitHub Release
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
