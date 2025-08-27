@@ -71,10 +71,9 @@ jobs:
         run: zip -r kcdutils-${{ steps.version.outputs.new_version }}.zip temp_kcdutils/kcdutils
 
       # 3. Create GitHub Release
-      - name: Create GitHub Release and upload ZIP
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: kcdutils-${{ steps.version.outputs.new_version }}.zip
           tag_name: ${{ steps.version.outputs.new_version }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}
