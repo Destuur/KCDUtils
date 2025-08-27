@@ -45,5 +45,4 @@ function KCDUtils.RegisterMod(modname)
     System.LogAlways("KCDUtils: Mod registered: " .. tostring(modname))
 end
 
-
 KCDUtils.Initialize()

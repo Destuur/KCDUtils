@@ -63,9 +63,8 @@ end
 --- @param callbackFunction (function) The function to be called when the event is triggered.
 --- @param opts (table|nil) Optional table with fields 'modName' (string) and 'once' (boolean).
 function KCDUtils.Event:Subscribe(eventName, callbackFunction, opts)
-    
     opts = opts or {}
-    local logger = KCDUtils.Logger.Factory(opts.modName or "Unknown")
+    local logger = KCDUtils.Logger.Factory(opts.Name or "Unknown")
 
     if type(callbackFunction) ~= "function" then
         error("Callback must be a function")
@@ -96,7 +95,35 @@ function KCDUtils.Event:Subscribe(eventName, callbackFunction, opts)
     end
 end
 
----
+--- Utility to register a method as listener to a system event
+--- @param target table Object that contains the callback method
+--- @param methodName string Name of the method on the target
+--- @param eventName string|nil Name of the system event (default = methodName)
+function KCDUtils.Event.SubscribeSystemEvent(target, methodName, eventName)
+    local logger = KCDUtils.Logger.Factory(target.Name or "Unknown")
+    eventName = eventName or methodName
+    if not target[methodName] or type(target[methodName]) ~= "function" then
+        logger:Error("Target does not have a method named '" .. methodName .. "'")
+        return
+    end
+    UIAction.RegisterEventSystemListener(target, "System", eventName, methodName)
+    logger:Info("Subscribed " .. tostring(methodName) .. " to system event '" .. eventName .. "'")
+end
+
+--- Utility to register a method as listener to the OnGameplayStarted event
+--- 
+--- Callback method must have the signature:
+--- ```lua
+--- function MyMod.OnGameplayStarted(actionName, eventName, argTable)
+---     -- handle event
+--- end
+--- ```
+--- 
+--- @param target table Object that contains the callback method "OnGameplayStarted"
+function KCDUtils.Event.OnGameplayStarted(target)
+    KCDUtils.Event.SubscribeSystemEvent(target, "OnGameplayStarted")
+end
+
 --- Unregisters a previously registered listener for a specific event.
 ---
 --- Removes the given callback function from the list of listeners for the specified event.
