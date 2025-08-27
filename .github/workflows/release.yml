@@ -90,7 +90,7 @@ jobs:
           mkdir -p temp_kcdutils/kcdutils/Data
 
           # .pak nur aus Subfolder kcdutils erstellen
-          zip -r -0 temp_kcdutils/kcdutils/Data/kcdutils.pak kcdutils/*
+          zip -r -0 temp_kcdutils/kcdutils/Data/kcdutils.pak Data/kcdutils/*
 
           # Restliche Dateien in das ZIP vorbereiten
           shopt -s dotglob
