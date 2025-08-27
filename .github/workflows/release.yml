@@ -1,125 +1,47 @@
-name: Build KCDUtils ZIP on Push to Main
+name: Version bump test
 
 on:
   push:
     branches:
       - main
 
-env:
-  ZIP_NAME: kcdutils
-
 jobs:
-  build-zip:
+  version-bump:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write  # Erlaubt Push auf das Repo
 
     steps:
-      # 1. Checkout repository with token
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      # 1. Checkout repository
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_TOKEN }}
           fetch-depth: 0
-          persist-credentials: false
 
-      # 2. Install dependencies
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y zip xmlstarlet
-
-      # 3. Determine new version
-      - name: Determine new version
+      # 2. Bump version in mod.manifest
+      - name: Bump version
         id: version
         run: |
           CURRENT=$(xmlstarlet sel -t -v "//info/version" mod.manifest || echo "0.0.0")
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          
-          if [ -z "$LAST_TAG" ]; then
-              COMMITS=$(git log --pretty=format:%s)
-          else
-              COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:%s)
-          fi
-          
+          echo "Current version: $CURRENT"
+
+          # Patch-Version hochzählen
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-
-          if echo "$COMMITS" | grep -iq "\[major\]"; then
-              NEW_MAJOR=$((MAJOR + 1))
-              NEW_MINOR=0
-              NEW_PATCH=0
-          elif echo "$COMMITS" | grep -iq "\[minor\]"; then
-              NEW_MAJOR=$MAJOR
-              NEW_MINOR=$((MINOR + 1))
-              NEW_PATCH=0
-          else
-              NEW_MAJOR=$MAJOR
-              NEW_MINOR=$MINOR
-              NEW_PATCH=$((PATCH + 1))
-          fi
-
-          NEW_VERSION="${NEW_MAJOR}.${NEW_MINOR}.${NEW_PATCH}"
-          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          PATCH=$((PATCH + 1))
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
           echo "New version: $NEW_VERSION"
+          xmlstarlet ed -L -u "//info/version" -v "$NEW_VERSION" mod.manifest
 
-      # 4. Update files
-      - name: Update version in files
-        run: |
-          xmlstarlet ed -L -u "//info/version" -v "${{ steps.version.outputs.new_version }}" mod.manifest
-          if [ -f README.md ]; then
-              sed -i "s/{{NEW_VERSION}}/${{ steps.version.outputs.new_version }}/g" README.md
-          fi
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      # 5. Commit & push on temporary branch
-      - name: Commit & push version bump
+      # 3. Commit & push
+      - name: Commit & push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      
-          git checkout -b "version-bump-${{ steps.version.outputs.new_version }}"
-          git add mod.manifest README.md
-      
-          # Remote-URL mit Token setzen
-          git remote set-url origin https://${{ secrets.GH_TOKEN }}@github.com/Destuur/KCDUtils.git
-      
-          if ! git diff --staged --quiet; then
-              git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
-              git push origin "version-bump-${{ steps.version.outputs.new_version }}"
-          else
-              echo "No changes to commit"
-          fi
 
-      # 6. Create tag on temporary branch
-      - name: Create tag
-        run: |
-          git tag -a "${{ steps.version.outputs.new_version }}" -m "Release ${{ steps.version.outputs.new_version }}"
-          git push origin "${{ steps.version.outputs.new_version }}"
+          git add mod.manifest
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}" || echo "No changes to commit"
 
-      # 7. Prepare ZIP folder
-      - name: Prepare kcdutils folder
-        run: |
-          mkdir -p temp_kcdutils/kcdutils
-          find . -maxdepth 1 -type f ! -path "./.*" -exec cp {} temp_kcdutils/kcdutils/ \;
-          for dir in */; do
-              if [[ "$dir" != "temp_kcdutils/" && "$dir" != ".git/" && "$dir" != ".github/" ]]; then
-                  cp -r "$dir" temp_kcdutils/kcdutils/
-              fi
-          done
-
-      # 8. Create ZIP
-      - name: Create ZIP
-        run: |
-          cd temp_kcdutils
-          zip -r "../${{ env.ZIP_NAME }}-${{ steps.version.outputs.new_version }}.zip" kcdutils/
-          cd ..
-
-      # 9. Create GitHub Release
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ env.ZIP_NAME }}-${{ steps.version.outputs.new_version }}.zip
-          tag_name: ${{ steps.version.outputs.new_version }}
-          name: Release ${{ steps.version.outputs.new_version }}
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          git tag "${{ steps.version.outputs.new_version }}" || echo "Tag exists"
+          git push origin main --tags
