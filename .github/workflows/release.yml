@@ -57,6 +57,7 @@ jobs:
 
           xmlstarlet ed -L -u "//info/version" -v "$NEW_VERSION" mod.manifest
 
+          # README aktualisieren
           if [ -f README.md ]; then
             if grep -q "{{NEW_VERSION}}" README.md; then
               sed -i "s/{{NEW_VERSION}}/${NEW_VERSION}/g" README.md
@@ -83,15 +84,15 @@ jobs:
           git push origin HEAD:main
           git push origin --tags
 
-      - name: Prepare folder for ZIP & PAK
+      - name: Prepare folder for ZIP
         run: |
           rm -rf temp_kcdutils
           mkdir -p temp_kcdutils/kcdutils/Data
-          
-          # Erstelle die PAK nur aus dem Subfolder kcdutils (z.B. dort wo Scripts liegt)
-          zip -r -0 temp_kcdutils/kcdutils/Data/kcdutils.pak kcdutils
 
-          # Rest der Dateien ins ZIP vorbereiten
+          # .pak nur aus Subfolder kcdutils erstellen
+          zip -r -0 temp_kcdutils/kcdutils/Data/kcdutils.pak kcdutils/*
+
+          # Restliche Dateien in das ZIP vorbereiten
           shopt -s dotglob
           for f in *; do
             if [[ "$f" != "temp_kcdutils" && "$f" != ".git" && "$f" != ".github" ]]; then
@@ -99,12 +100,12 @@ jobs:
             fi
           done
 
-      - name: Create ZIP including PAK
+      - name: Create ZIP
         env:
           NEW_VERSION: ${{ steps.version.outputs.new_version }}
         run: |
           cd temp_kcdutils
-          zip -r "../${ZIP_NAME}-${NEW_VERSION}.zip" kcdutils
+          zip -r "../${ZIP_NAME}-${NEW_VERSION}.zip" kcdutils/
           cd ..
 
       - name: Create GitHub Release
