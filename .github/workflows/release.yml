@@ -88,4 +88,4 @@ jobs:
         with:
           files: kcdutils-${{ steps.version.outputs.new_version }}.zip
           tag_name: ${{ steps.version.outputs.new_version }}
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
