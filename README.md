@@ -1,7 +1,6 @@
 # KCDUtils
 
-**Version:** 0.0.3
-
+**Version:** <!--VERSION-->{{NEW_VERSION}}<!--/VERSION-->
 **Author:** Destuur  
 **Game:** Kingdom Come: Deliverance 2  
 
