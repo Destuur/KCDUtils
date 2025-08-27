@@ -13,7 +13,7 @@ jobs:
       # 1. Checkout repo mit Token
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           persist-credentials: true 
           fetch-depth: 0
 
@@ -96,4 +96,4 @@ jobs:
         with:
           files: kcdutils-${{ steps.version.outputs.new_version }}.zip
           tag_name: ${{ steps.version.outputs.new_version }}
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
