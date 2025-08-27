@@ -117,7 +117,7 @@ jobs:
           NEW_VERSION: ${{ steps.version.outputs.new_version }}
         run: |
           cd temp_kcdutils
-          zip -r "../${ZIP_NAME}-${NEW_VERSION}.zip" kcdutils/
+          zip -r "../${ZIP_NAME}.zip" kcdutils/
           cd ..
 
       - name: Create GitHub Release
