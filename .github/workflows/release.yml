@@ -1,0 +1,75 @@
+name: Build KCDUtils ZIP on Merge to Main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-zip:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: sudo apt-get install -y zip xmlstarlet
+
+      # 1. Bump version based on commit messages
+      - name: Bump version
+        id: version
+        run: |
+          CURRENT=$(xmlstarlet sel -t -v "//info/version" kcdutils/mod.manifest)
+          echo "Current version: $CURRENT"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+
+          # Prüfe Commit Messages seit letztem Tag
+          LAST_TAG=$(git describe --tags --abbrev=0 || echo "0.0.0")
+          echo "Last tag: $LAST_TAG"
+          COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:%s)
+
+          echo "Commits since last tag:"
+          echo "$COMMITS"
+
+          NEW_MAJOR=$MAJOR
+          NEW_MINOR=$MINOR
+          NEW_PATCH=$PATCH
+
+          if echo "$COMMITS" | grep -iq "\[major\]"; then
+              NEW_MAJOR=$((MAJOR + 1))
+              NEW_MINOR=0
+              NEW_PATCH=0
+          elif echo "$COMMITS" | grep -iq "\[minor\]"; then
+              NEW_MINOR=$((MINOR + 1))
+              NEW_PATCH=0
+          else
+              NEW_PATCH=$((PATCH + 1))
+          fi
+
+          NEW_VERSION="$NEW_MAJOR.$NEW_MINOR.$NEW_PATCH"
+          echo "New version: $NEW_VERSION"
+
+          # Update mod.manifest
+          xmlstarlet ed -L -u "//info/version" -v "$NEW_VERSION" kcdutils/mod.manifest
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      # 2. Prepare ZIP folder
+      - name: Prepare kcdutils folder
+        run: |
+          mkdir temp_kcdutils
+          shopt -s extglob
+          cp -r !(temp_kcdutils) temp_kcdutils/kcdutils
+          rm -rf temp_kcdutils/kcdutils/.github temp_kcdutils/kcdutils/.git
+
+      - name: Create ZIP
+        run: zip -r kcdutils-${{ steps.version.outputs.new_version }}.zip temp_kcdutils/kcdutils
+
+      # 3. Create GitHub Release
+      - name: Create GitHub Release and upload ZIP
+        uses: softprops/action-gh-release@v1
+        with:
+          files: kcdutils-${{ steps.version.outputs.new_version }}.zip
+          tag_name: ${{ steps.version.outputs.new_version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
