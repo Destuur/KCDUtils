@@ -2,36 +2,45 @@ name: Version bump, ZIP & release
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  workflow_dispatch:
 
 env:
   ZIP_NAME: kcdutils
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Push & Release
+      contents: write
 
     steps:
-      # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: true
+          token: ${{ secrets.GH_TOKEN }}
 
-      # 2. Install dependencies
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y xmlstarlet zip
 
-      # 3. Patch-Version hochzählen
+      - name: Prepare local main branch
+        run: |
+          git fetch --prune origin
+          git checkout -B main origin/main
+
       - name: Bump version
         id: version
+        shell: bash
         run: |
+          set -euo pipefail
           CURRENT=$(xmlstarlet sel -t -v "//info/version" mod.manifest || echo "0.0.0")
           echo "Current version: $CURRENT"
 
@@ -40,50 +49,58 @@ jobs:
           NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
           echo "New version: $NEW_VERSION"
 
-          # mod.manifest aktualisieren
           xmlstarlet ed -L -u "//info/version" -v "$NEW_VERSION" mod.manifest
 
-          # README aktualisieren
           if [ -f README.md ]; then
-              sed -i "s/{{NEW_VERSION}}/$NEW_VERSION/g" README.md
+            sed -i "s/{{NEW_VERSION}}/$NEW_VERSION/g" README.md || true
           fi
 
-          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
-      # 4. Commit & push version bump
       - name: Commit and push version bump
+        env:
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add mod.manifest README.md
-          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}" || echo "No changes to commit"
-          git tag "${{ steps.version.outputs.new_version }}" || echo "Tag exists"
-          git push origin main --tags
+          git add mod.manifest README.md || true
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: bump version to ${NEW_VERSION} [skip ci]"
+          fi
 
-      # 5. Prepare ZIP folder
+          git tag -a "${NEW_VERSION}" -m "Release ${NEW_VERSION}" || echo "Tag exists"
+
+          # Sicherstellen, dass auf main gepusht wird (funktioniert auch bei detached HEAD)
+          git push origin HEAD:main
+          git push origin --tags
+
       - name: Prepare folder for ZIP
         run: |
+          rm -rf temp_kcdutils
           mkdir -p temp_kcdutils/kcdutils
-          for f in * .*; do
+          shopt -s dotglob
+          for f in *; do
             if [[ "$f" != "temp_kcdutils" && "$f" != ".git" && "$f" != ".github" ]]; then
               cp -r "$f" temp_kcdutils/kcdutils/
             fi
           done
 
-      # 6. Create ZIP
       - name: Create ZIP
+        env:
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
         run: |
           cd temp_kcdutils
-          zip -r "../${{ env.ZIP_NAME }}-${{ steps.version.outputs.new_version }}.zip" kcdutils/
+          zip -r "../${ZIP_NAME}-${NEW_VERSION}.zip" kcdutils/
           cd ..
 
-      # 7. Create GitHub Release
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.new_version }}
           name: Release ${{ steps.version.outputs.new_version }}
           files: ${{ env.ZIP_NAME }}-${{ steps.version.outputs.new_version }}.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}
