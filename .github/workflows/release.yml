@@ -1,20 +1,22 @@
-name: Build KCD Utils ZIP on Merge to Main
+name: Build KCDUtils ZIP on PR Merge to Main
 
 on:
-  push:
+  pull_request:
+    types: [closed]       # Trigger nur bei geschlossenen PRs
     branches:
       - main
 
 jobs:
   build-zip:
+    if: github.event.pull_request.merged == true   # nur wenn PR wirklich gemerged wurde
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repo mit Token
+      # 1. Checkout repo mit PAT
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true 
+          token: ${{ secrets.GH_TOKEN }}
+          persist-credentials: true
           fetch-depth: 0
 
       # 2. Install dependencies
@@ -27,9 +29,9 @@ jobs:
         run: |
           CURRENT=$(xmlstarlet sel -t -v "//info/version" mod.manifest)
           echo "Current version: $CURRENT"
-      
+
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-      
+          
           if [ -z "$LAST_TAG" ]; then
               echo "No tags found, using all commits."
               COMMITS=$(git log --pretty=format:%s)
@@ -37,10 +39,10 @@ jobs:
               echo "Last tag: $LAST_TAG"
               COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:%s)
           fi
-      
+          
           echo "Commits since last tag:"
           echo "$COMMITS"
-      
+
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
 
           NEW_MAJOR=$MAJOR
@@ -61,17 +63,14 @@ jobs:
           NEW_VERSION="$NEW_MAJOR.$NEW_MINOR.$NEW_PATCH"
           echo "New version: $NEW_VERSION"
 
-          # Update mod.manifest
+          # Update mod.manifest & README
           xmlstarlet ed -L -u "//info/version" -v "$NEW_VERSION" mod.manifest
-
-          # Update README version
           sed -i "s/{{NEW_VERSION}}/$NEW_VERSION/g" README.md
 
-          # Export for next steps
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      # 4. Tag the new version
-      - name: Create and push tag
+      # 4. Commit + push version bump + tag
+      - name: Commit version bump and push tag
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
@@ -87,13 +86,14 @@ jobs:
           shopt -s extglob
           cp -r !(temp_kcdutils|.github|.git) temp_kcdutils/kcdutils/
 
+      # 6. Create ZIP
       - name: Create ZIP
         run: zip -r kcdutils-${{ steps.version.outputs.new_version }}.zip temp_kcdutils/kcdutils
 
-      # 6. Create GitHub Release
+      # 7. Create GitHub Release
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: kcdutils-${{ steps.version.outputs.new_version }}.zip
           tag_name: ${{ steps.version.outputs.new_version }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}
