@@ -55,10 +55,8 @@ jobs:
           PATCH=$((PATCH + 1))
           NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
 
-          # mod.manifest aktualisieren
           xmlstarlet ed -L -u "//info/version" -v "$NEW_VERSION" mod.manifest
 
-          # README aktualisieren
           if [ -f README.md ]; then
             if grep -q "{{NEW_VERSION}}" README.md; then
               sed -i "s/{{NEW_VERSION}}/${NEW_VERSION}/g" README.md
@@ -89,19 +87,17 @@ jobs:
         run: |
           rm -rf temp_kcdutils
           mkdir -p temp_kcdutils/kcdutils/Data
+          
+          # Erstelle die PAK nur aus dem Subfolder kcdutils (z.B. dort wo Scripts liegt)
+          zip -r -0 temp_kcdutils/kcdutils/Data/kcdutils.pak kcdutils
 
+          # Rest der Dateien ins ZIP vorbereiten
           shopt -s dotglob
-          # Alle Dateien außer temp_kcdutils, .git, .github kopieren
           for f in *; do
             if [[ "$f" != "temp_kcdutils" && "$f" != ".git" && "$f" != ".github" ]]; then
-              cp -r "$f" temp_kcdutils/kcdutils/Data/kcdutils/
+              cp -r "$f" temp_kcdutils/kcdutils/
             fi
           done
-
-          # PAK-Datei aus Data/kcdutils erstellen (0-Kompression)
-          cd temp_kcdutils/kcdutils/Data
-          zip -r -0 kcdutils.pak kcdutils
-          cd ../../..
 
       - name: Create ZIP including PAK
         env:
