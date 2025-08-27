@@ -3,6 +3,16 @@ local FactoryLogger = KCDUtils and KCDUtils.Logger or {}
 local cache = {}
 
 ---Factory for creating/retrieving a Logger instance for a given mod.
+---
+---```lua
+--- local logger = KCDUtils.Logger.Factory("MyMod", { defaultThrottle = true, defaultInterval = 10 })
+--- logger:SetCategory("MyCategory", true, true, 10)
+--- logger:LogCategory("MyCategory", "This is a log message.")
+--- logger:Info("This is an info message.")
+--- logger:Warn("This is a warning message.")
+--- logger:Error("This is an error message.")
+--- ```
+---
 ---@param modName string Unique mod identifier
 ---@param options table|nil Optional settings: defaultThrottle = boolean, defaultInterval = number
 function FactoryLogger.Factory(modName, options)
@@ -19,6 +29,8 @@ function FactoryLogger.Factory(modName, options)
         colors = {},
         throttleEnabled = true, -- globaler Schalter für Throttle
     }
+
+    UIAction.RegisterEventSystemListener(instance, "System", "OnGameplayStarted", "OnGameplayStarted")
     
     --- Adds or configures a log category for this logger instance.
     --- @param category string Name of the category
@@ -41,9 +53,6 @@ function FactoryLogger.Factory(modName, options)
             instance.queues[category] = nil
         end
     end
-
-    UIAction.RegisterEventSystemListener(instance, "System", "OnGameplayStarted", "OnGameplayStarted")
-    -- KCDUtils.Event.SubscribeSystemEvent(instance, "OnGameplayStarted")
     
     --- Enables or disables a log category.
     --- @param category string Name of the category
@@ -132,10 +141,44 @@ function FactoryLogger.Factory(modName, options)
         System.LogAlways("Logger [" .. self.Name .. "]: Throttle disabled")
     end
 
-    --- Convenience methods for common log levels.
+    --- Logs a general message (non-categorized).
+    --- 
+    --- Output:
+    --- ```cs
+    --- [ModName] This is your message
+    --- ```
+    --- 
+    --- @param message string The message to log
     function instance:Log(message)   instance:LogCategory("General", message) end
+
+    --- Logs an info message.
+    --- 
+    --- Output:
+    --- ```cs
+    --- [ModName][Info] This is your info message
+    --- ```
+    --- 
+    --- @param message string The message to log
     function instance:Info(message)  instance:LogCategory("Info", message)    end
+
+    --- Logs a warning message.
+    --- 
+    --- Output:
+    --- ```cs
+    --- [ModName][Warn] This is your warning message
+    --- ```
+    --- 
+    --- @param message string The message to log
     function instance:Warn(message)  instance:LogCategory("Warn", message)    end
+
+    --- Logs an error message.
+    --- 
+    --- Output:
+    --- ```cs
+    --- [ModName][Error] This is your error message
+    --- ```
+    --- 
+    --- @param message string The message to log
     function instance:Error(message) instance:LogCategory("Error", message)   end
 
     -- Default categories: enabled by default
