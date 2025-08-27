@@ -92,7 +92,7 @@ jobs:
 
           # .pak nur aus Inhalt des kcdutils-Ordners erstellen
           # Pfad im .pak startet direkt mit Scripts/...
-          cd Data
+          cd Data/kcdutils
           zip -r -0 ../temp_kcdutils/kcdutils/Data/kcdutils.pak kcdutils/*
           cd ..
 
