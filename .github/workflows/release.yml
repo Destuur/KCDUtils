@@ -1,29 +1,33 @@
-name: Version bump and release
+name: Version bump, ZIP & release
 
 on:
   push:
     branches:
       - main
 
+env:
+  ZIP_NAME: kcdutils
+
 jobs:
-  version-bump:
+  build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Damit GitHub Actions pushen darf
+      contents: write  # Push & Release
 
     steps:
-      # 1. Checkout repository mit Token
+      # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          token: ${{ secrets.GH_TOKEN }}
           fetch-depth: 0
-          persist-credentials: true  # Wichtig, damit git push funktioniert
+          persist-credentials: true
 
-      # 2. Install xmlstarlet
-      - name: Install xmlstarlet
+      # 2. Install dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xmlstarlet
+          sudo apt-get install -y xmlstarlet zip
 
       # 3. Patch-Version hochzählen
       - name: Bump version
@@ -37,27 +41,54 @@ jobs:
           NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
           echo "New version: $NEW_VERSION"
 
+          # mod.manifest aktualisieren
           xmlstarlet ed -L -u "//info/version" -v "$NEW_VERSION" mod.manifest
+
+          # README aktualisieren
+          if [ -f README.md ]; then
+              sed -i "s/{{NEW_VERSION}}/$NEW_VERSION/g" README.md
+          fi
 
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      # 4. Commit und push
+      # 4. Commit & push version bump
       - name: Commit and push version bump
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add mod.manifest
-          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}" || echo "No changes to commit"
+          if [ -f README.md ]; then
+              git add README.md
+          fi
 
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}" || echo "No changes to commit"
           git tag "${{ steps.version.outputs.new_version }}" || echo "Tag exists"
           git push origin main --tags
 
-      # 5. Optional: Release auf GitHub erstellen
+      # 5. Prepare ZIP folder
+      - name: Prepare folder for ZIP
+        run: |
+          mkdir -p temp_kcdutils/kcdutils
+          for f in * .*; do
+            if [[ "$f" != "temp_kcdutils" && "$f" != ".git" && "$f" != ".github" ]]; then
+              cp -r "$f" temp_kcdutils/kcdutils/
+            fi
+          done
+
+      # 6. Create ZIP
+      - name: Create ZIP
+        run: |
+          cd temp_kcdutils
+          zip -r "../${{ env.ZIP_NAME }}-${{ steps.version.outputs.new_version }}.zip" kcdutils/
+          cd ..
+
+      # 7. Create GitHub Release
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.new_version }}
           name: Release ${{ steps.version.outputs.new_version }}
+          files: ${{ env.ZIP_NAME }}-${{ steps.version.outputs.new_version }}.zip
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
