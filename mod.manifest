@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<kcd_mod xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<info>
+		<name>KCD Utils</name>
+		<description>Collection of Lua utilities and helper functions for modding Kingdom Come: Deliverance 2.</description>
+		<author>Destuur</author>
+		<version>0.0.1</version>
+		<created_on>2025-08-20</created_on>
+		<modid>kcdutils</modid>
+		<modifies_level>false</modifies_level>
+	</info>
+</kcd_mod>
