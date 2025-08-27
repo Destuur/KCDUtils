@@ -117,5 +117,7 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.new_version }}
           name: Release ${{ steps.version.outputs.new_version }}
-          files: ${{ env.ZIP_NAME }}-${{ steps.version.outputs.new_version }}.zip
+          files: |
+            ${{ env.ZIP_NAME }}-${{ steps.version.outputs.new_version }}.zip
+            temp_kcdutils/kcdutils-${{ steps.version.outputs.new_version }}.pak
           token: ${{ secrets.GITHUB_TOKEN }}
