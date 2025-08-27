@@ -1,4 +1,4 @@
-name: Build KCDUtils ZIP on Push to Main
+name: Build KCD Utils ZIP on Push to Main
 
 on:
   push:
