@@ -16,20 +16,26 @@ jobs:
         run: sudo apt-get install -y zip xmlstarlet
 
       # 1. Bump version based on commit messages
-      - name: Bump version
+      - name: Determine new version
         id: version
         run: |
           CURRENT=$(xmlstarlet sel -t -v "//info/version" mod.manifest)
           echo "Current version: $CURRENT"
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-
-          # Prüfe Commit Messages seit letztem Tag
-          LAST_TAG=$(git describe --tags --abbrev=0 || echo "0.0.0")
-          echo "Last tag: $LAST_TAG"
-          COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:%s)
-
+      
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+      
+          if [ -z "$LAST_TAG" ]; then
+              echo "No tags found, using all commits."
+              COMMITS=$(git log --pretty=format:%s)
+          else
+              echo "Last tag: $LAST_TAG"
+              COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:%s)
+          fi
+      
           echo "Commits since last tag:"
           echo "$COMMITS"
+      
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
 
           NEW_MAJOR=$MAJOR
           NEW_MINOR=$MINOR
