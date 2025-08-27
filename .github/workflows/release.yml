@@ -10,12 +10,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout repo mit Token
       - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
+      # 2. Install dependencies
       - name: Install dependencies
         run: sudo apt-get install -y zip xmlstarlet
 
-      # 1. Bump version based on commit messages
+      # 3. Bump version based on commit messages
       - name: Determine new version
         id: version
         run: |
@@ -58,31 +62,33 @@ jobs:
           # Update mod.manifest
           xmlstarlet ed -L -u "//info/version" -v "$NEW_VERSION" mod.manifest
 
+          # Update README version
+          sed -i "s/{{NEW_VERSION}}/$NEW_VERSION/g" README.md
+
+          # Export for next steps
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Update README version
-        run: |
-          sed -i "s/{{NEW_VERSION}}/${{ steps.version.outputs.new_version }}/g" README.md
-          
-      # 2. Tag the new version
+      # 4. Tag the new version
       - name: Create and push tag
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
+          git add mod.manifest README.md
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
           git tag ${{ steps.version.outputs.new_version }}
-          git push origin ${{ steps.version.outputs.new_version }}
+          git push origin main --tags
 
-      # 3. Prepare ZIP folder
+      # 5. Prepare ZIP folder
       - name: Prepare kcdutils folder
         run: |
-          mkdir -p temp_kcdutils/kcdutils   # -p erstellt alle notwendigen Verzeichnisse
+          mkdir -p temp_kcdutils/kcdutils
           shopt -s extglob
           cp -r !(temp_kcdutils|.github|.git) temp_kcdutils/kcdutils/
 
       - name: Create ZIP
         run: zip -r kcdutils-${{ steps.version.outputs.new_version }}.zip temp_kcdutils/kcdutils
 
-      # 4. Create GitHub Release
+      # 6. Create GitHub Release
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
