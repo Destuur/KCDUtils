@@ -1,0 +1,128 @@
+name: Version bump, ZIP & release
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  ZIP_NAME: kcdutils
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xmlstarlet zip python3
+
+      - name: Prepare local main branch
+        run: |
+          git fetch --prune origin
+          git checkout -B main origin/main
+
+      - name: Configure git auth for push
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+
+      - name: Bump version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          CURRENT=$(xmlstarlet sel -t -v "//info/version" mod.manifest || echo "0.0.0")
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          PATCH=$((PATCH + 1))
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+
+          xmlstarlet ed -L -u "//info/version" -v "$NEW_VERSION" mod.manifest
+
+          # README aktualisieren
+          if [ -f README.md ]; then
+            if grep -q "{{NEW_VERSION}}" README.md; then
+              sed -i "s/{{NEW_VERSION}}/${NEW_VERSION}/g" README.md
+            else
+              CUR_ESC=${CURRENT//./\\.}
+              sed -i -E "s/\\b${CUR_ESC}\\b/${NEW_VERSION}/g" README.md || true
+            fi
+          fi
+
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Commit, tag and push
+        env:
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
+        run: |
+          set -euo pipefail
+          git add mod.manifest README.md || true
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: bump version to ${NEW_VERSION} [skip ci]"
+          fi
+          git tag -a "${NEW_VERSION}" -m "Release ${NEW_VERSION}" || true
+          git push origin HEAD:main
+          git push origin --tags
+
+      - name: Prepare folder for ZIP and create .pak
+        run: |
+          rm -rf temp__kcdutils
+          mkdir -p temp__kcdutils/_kcdutils/Data
+
+          # .pak erstellen
+          python3 - <<EOF
+          import zipfile, os
+          base_folder = "Data/kcdutils"  # der Ordner, dessen Inhalt in .pak soll
+          pak_file = "temp__kcdutils/_kcdutils/Data/kcdutils.pak"
+          os.makedirs(os.path.dirname(pak_file), exist_ok=True)
+          with zipfile.ZipFile(pak_file, 'w', compression=zipfile.ZIP_STORED) as archive:
+              for root, dirs, files in os.walk(base_folder):
+                  for file in files:
+                      abs_path = os.path.join(root, file)
+                      rel_path = os.path.relpath(abs_path, base_folder)
+                      archive.write(abs_path, rel_path)
+          EOF
+
+          # Restliche Dateien in _kcdutils packen
+          shopt -s dotglob
+          for f in *; do
+            if [[ "$f" != "temp__kcdutils" && "$f" != ".git" && "$f" != ".github" ]]; then
+              cp -r "$f" temp__kcdutils/_kcdutils/
+            fi
+          done
+
+      - name: Create ZIP
+        env:
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
+        run: |
+          cd temp__kcdutils
+          zip -r "../${ZIP_NAME}.zip" _kcdutils/
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.new_version }}
+          name: Release ${{ steps.version.outputs.new_version }}
+          files: ${{ env.ZIP_NAME }}.zip
+          token: ${{ secrets.GITHUB_TOKEN }}
