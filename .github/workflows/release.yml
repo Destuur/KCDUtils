@@ -84,17 +84,18 @@ jobs:
           fi
 
       # 5. Commit and push version bump
-      - name: Commit version bump
+      - name: Commit and push version bump
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
+      
+          git remote set-url origin https://${{ secrets.GH_TOKEN }}@github.com/Destuur/KCDUtils.git
+      
           git add mod.manifest
           if [ -f README.md ]; then
               git add README.md
           fi
-          
-          # Nur commit wenn Änderungen existieren
+      
           if ! git diff --staged --quiet; then
               git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
               git push origin main
