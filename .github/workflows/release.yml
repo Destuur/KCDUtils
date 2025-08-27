@@ -13,7 +13,7 @@ jobs:
       # 1. Checkout repo mit Token
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}
           persist-credentials: true 
 
       # 2. Install dependencies
@@ -95,4 +95,4 @@ jobs:
         with:
           files: kcdutils-${{ steps.version.outputs.new_version }}.zip
           tag_name: ${{ steps.version.outputs.new_version }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}
