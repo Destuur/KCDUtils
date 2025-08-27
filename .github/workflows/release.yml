@@ -62,7 +62,7 @@ jobs:
 
       - name: Update README version
         run: |
-          sed -i "s/{{VERSION}}/${{ steps.version.outputs.new_version }}/g" README.md
+          sed -i "s/{{NEW_VERSION}}/${{ steps.version.outputs.new_version }}/g" README.md
 
       # 2. Prepare ZIP folder
       - name: Prepare kcdutils folder
