@@ -18,6 +18,12 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
           fetch-depth: 0
 
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xmlstarlet
+
+
       # 2. Bump version in mod.manifest
       - name: Bump version
         id: version
