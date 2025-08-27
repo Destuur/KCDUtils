@@ -106,6 +106,12 @@ jobs:
           zip -r "../${ZIP_NAME}-${NEW_VERSION}.zip" kcdutils/
           cd ..
 
+      - name: Create .pak archive
+        run: |
+          cd temp_kcdutils
+          zip -r -0 "kcdutils-${{ steps.version.outputs.new_version }}.pak" kcdutils
+          cd ..
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
