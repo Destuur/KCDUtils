@@ -1,4 +1,4 @@
-name: Version bump test
+name: Version bump and release
 
 on:
   push:
@@ -9,39 +9,40 @@ jobs:
   version-bump:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Erlaubt Push auf das Repo
+      contents: write  # Damit GitHub Actions pushen darf
 
     steps:
-      # 1. Checkout repository
-      - uses: actions/checkout@v4
+      # 1. Checkout repository mit Token
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GH_TOKEN }}
           fetch-depth: 0
+          persist-credentials: true  # Wichtig, damit git push funktioniert
 
-      - name: Install dependencies
+      # 2. Install xmlstarlet
+      - name: Install xmlstarlet
         run: |
           sudo apt-get update
           sudo apt-get install -y xmlstarlet
 
-
-      # 2. Bump version in mod.manifest
+      # 3. Patch-Version hochzählen
       - name: Bump version
         id: version
         run: |
           CURRENT=$(xmlstarlet sel -t -v "//info/version" mod.manifest || echo "0.0.0")
           echo "Current version: $CURRENT"
 
-          # Patch-Version hochzählen
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
           PATCH=$((PATCH + 1))
           NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
           echo "New version: $NEW_VERSION"
+
           xmlstarlet ed -L -u "//info/version" -v "$NEW_VERSION" mod.manifest
 
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      # 3. Commit & push
-      - name: Commit & push
+      # 4. Commit und push
+      - name: Commit and push version bump
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -51,3 +52,12 @@ jobs:
 
           git tag "${{ steps.version.outputs.new_version }}" || echo "Tag exists"
           git push origin main --tags
+
+      # 5. Optional: Release auf GitHub erstellen
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.new_version }}
+          name: Release ${{ steps.version.outputs.new_version }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
