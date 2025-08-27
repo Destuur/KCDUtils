@@ -63,10 +63,9 @@ jobs:
       # 2. Prepare ZIP folder
       - name: Prepare kcdutils folder
         run: |
-          mkdir temp_kcdutils
+          mkdir -p temp_kcdutils/kcdutils   # -p erstellt alle notwendigen Verzeichnisse
           shopt -s extglob
-          cp -r !(temp_kcdutils) temp_kcdutils/kcdutils
-          rm -rf temp_kcdutils/kcdutils/.github temp_kcdutils/kcdutils/.git
+          cp -r !(temp_kcdutils|.github|.git) temp_kcdutils/kcdutils/
 
       - name: Create ZIP
         run: zip -r kcdutils-${{ steps.version.outputs.new_version }}.zip temp_kcdutils/kcdutils
