@@ -1,6 +1,6 @@
 # KCDUtils
 
-**Version:** <!--VERSION-->0.0.19<!--/VERSION-->
+**Version:** <!--VERSION-->0.0.21<!--/VERSION-->  
 **Author:** Destuur  
 **Game:** Kingdom Come: Deliverance 2  
 
@@ -91,4 +91,4 @@ It provides ready-to-use functions, helpers, and a consistent framework for crea
 
 ## License
 
-This project is released under the MIT License. See the `LICENSE` file for details.
+This project is released under the MIT License. See the [`LICENSE`](https://github.com/Destuur/KCDUtils/blob/main/LICENSE) file for details.
