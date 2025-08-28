@@ -23,8 +23,3 @@ function KCDUtils.System.GetPlayer()
     end
     return player
 end
-
--- ---@class PlayerInstance
--- ---@field Actor KCDUtils.Entities.Player.Actor
--- ---@field Soul KCDUtils.Entities.Player.Soul
--- ---@field Human KCDUtils.Entities.Player.Human

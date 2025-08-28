@@ -10,21 +10,27 @@ function KCDUtils.Initialize()
         KCDUtils.initiated = true
         System.LogAlways("KCDUtils: Initializing...")
         local utils = {
+            "API",
+            "Calendar",
             "Command",
             "Config",
             "DB",
             "Debug",
+            "Entities",
             "Event",
             "Input",
             "Logger",
             "Math",
             "Path",
-            "Player",
+            "Resources",
             "Safe",
+            "Script",
             "String",
+            "System",
             "Table",
             "Time",
             "UI",
+            "VectorUtils",
             "Version",
         }
         for _, util in ipairs(utils) do
@@ -44,6 +50,5 @@ function KCDUtils.RegisterMod(modname)
     mods[modname] = mods[modname] or {}
     System.LogAlways("KCDUtils: Mod registered: " .. tostring(modname))
 end
-
 
 KCDUtils.Initialize()
