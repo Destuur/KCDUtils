@@ -1,4 +1,8 @@
+--- @diagnostic disable
+
+--- @class KCDUtils.Safe
 KCDUtils.Safe = KCDUtils.Safe or {}
+local unpack = unpack or table.unpack
 
 --- Safely calls a method on a target object.
 --- Wraps the call in pcall and logs errors without crashing.
@@ -29,5 +33,5 @@ function KCDUtils.Safe.Call(target, methodName, ...)
         logger:Error("Error calling method '" .. tostring(methodName) .. "': " .. tostring(results[1]))
     end
 
-    return ok, table.unpack(results)
+    return ok, unpack(results)
 end

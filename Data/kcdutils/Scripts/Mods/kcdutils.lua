@@ -10,6 +10,8 @@ function KCDUtils.Initialize()
         KCDUtils.initiated = true
         System.LogAlways("KCDUtils: Initializing...")
         local utils = {
+            "API",
+            "Calendar",
             "Command",
             "Config",
             "DB",
@@ -28,6 +30,7 @@ function KCDUtils.Initialize()
             "Table",
             "Time",
             "UI",
+            "VectorUtils",
             "Version",
         }
         for _, util in ipairs(utils) do
