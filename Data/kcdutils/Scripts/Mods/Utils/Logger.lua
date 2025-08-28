@@ -112,6 +112,7 @@ function FactoryLogger.Factory(modName, options)
     end
 
     function instance:OnGameplayStarted()
+        if not self.defaultThrottle then return end
         self:StartThrottleLoop()
     end
 
