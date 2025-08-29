@@ -20,6 +20,15 @@ function Player:GetHealth()
     return player.soul:GetState("health")
 end
 
+function Player:SetHealth()
+end
+
+function Player:AddHealth()
+end
+
+function Player:RemoveHealth()
+end
+
 --- Gets the player's current stamina value.
 --- @return number|nil value The player's stamina or nil if not available.
 function Player:GetStamina()
@@ -78,6 +87,12 @@ function Player:GetAlcoholism()
         return nil
     end
     return player.soul:GetState("alcoholism")
+end
+
+function Player:GetPosition()
+end
+
+function Player:Teleport(position)
 end
 
 KCDUtils.Player = Player
