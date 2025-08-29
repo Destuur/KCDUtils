@@ -6,14 +6,21 @@ local Player = {}
 Player.__index = Player
 
 local _instance = nil
+local safeCall = KCDUtils.Safe.Call
 
 --- Singleton-Getter
 function Player:Get()
     if _instance then return _instance end
 
-    local raw = KCDUtils.System.GetPlayer()
-    if not raw then 
-        return nil 
+    local raw
+
+    if player then
+        raw = player
+    else
+        raw = KCDUtils.System.GetPlayer()
+        if not raw then
+            return nil
+        end
     end
 
     _instance = { _raw = raw }
@@ -71,281 +78,361 @@ function Player:Get()
     ---   local hp = player.soul:GetState(KCDUtils.Resources.SoulStates.Health)
     --- ```
     ---
-    ---@param state string The state to get (e.g., "dirt", "health")
-    ---@return number
+    ---@param state KCDUtilsSoulStates|string The state to get (e.g., "dirt", "health")
+    ---@return number|nil
     function _instance.soul:GetState(state)
-        return rawSoul:GetState(state)
+        return safeCall(rawSoul, "GetState", true, state)
+    end
+
+    --- Sets the given state value.
+    --- @param state KCDUtilsSoulStates|string The state to set (e.g., "dirt", "health").
+    --- @param value number The value to assign to the state.
+    function _instance.soul:SetState(state, value)
+        if rawSoul and rawSoul.SetState then
+            rawSoul:SetState(state, value)
+        end
+        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        logger:Error("Raw soul or SetState method not found.")
+        return nil
     end
 
     --- Returns the current level of the specified stat for the player.
-    --- @param stat string The stat key (e.g., "strength", "vitality").
+    --- @param stat KCDUtilsSoulStats|KCDUtilsIntermediateStats|string The stat key (e.g., "strength", "vitality").
     --- @return number|nil level The stat level, or nil if not found.
     function _instance.soul:GetStatLevel(stat)
-        return rawSoul:GetStatLevel(stat) or nil
+        if rawSoul and rawSoul.GetStatLevel then
+            return rawSoul:GetStatLevel(stat)
+        end
+        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        logger:Error("Raw soul or GetStatLevel method not found.")
+        return nil
     end
 
     --- Returns the current progress (XP) towards the next level for the specified stat.
-    --- @param stat string The stat key.
+    --- @param stat KCDUtilsSoulStats|KCDUtilsIntermediateStats|string The stat key.
     --- @return number|nil value The progress value, or nil if not found.
     function _instance.soul:GetStatProgress(stat)
-        return rawSoul:GetStatProgress(stat) or nil
+        if rawSoul and rawSoul.GetStatProgress then
+            return rawSoul:GetStatProgress(stat) or nil
+        end
+        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        logger:Error("Raw soul or GetStatProgress method not found.")
+        return nil
     end
 
     --- Advances the specified stat to the given level for the player.
-    --- @param stat string The stat key.
+    --- @param stat KCDUtilsSoulStats|KCDUtilsIntermediateStats|string The stat key.
     --- @param level number The level to advance to.
     function _instance.soul:AdvanceToStatLevel(stat, level)
-        return rawSoul:AdvanceToStatLevel(stat, level)
+        if rawSoul and rawSoul.AdvanceToStatLevel then
+            rawSoul:AdvanceToStatLevel(stat, level)
+        end
+        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        logger:Error("Raw soul or AdvanceToStatLevel method not found.")
+        return nil
     end
 
     --- Adds experience points to the specified stat for the player.
-    --- @param stat string The stat key.
+    --- @param stat KCDUtilsSoulStats|KCDUtilsIntermediateStats|string The stat key.
     --- @param xp number The amount of XP to add.
     function _instance.soul:AddStatXP(stat, xp)
-        return rawSoul:AddStatXP(stat, xp)
+        if rawSoul and rawSoul.AddStatXP then
+            rawSoul:AddStatXP(stat, xp)
+        end
+        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        logger:Error("Raw soul or AddStatXP method not found.")
+        return nil
     end
 
     --- Returns the XP required for the next level of the specified stat.
-    --- @param stat string The stat key.
+    --- @param stat KCDUtilsSoulStats|string The stat key.
     --- @param xp number Current XP (optional, if needed by implementation).
     --- @return number|nil xp The XP required, or nil if not found.
     function _instance.soul:GetNextLevelStatXP(stat, xp)
-        return rawSoul:GetNextLevelStatXP(stat, xp)
+        if rawSoul and rawSoul.GetNextLevelStatXP then
+            return rawSoul:GetNextLevelStatXP(stat, xp)
+        end
+        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        logger:Error("Raw soul or GetNextLevelStatXP method not found.")
+        return nil
     end
 
     --- Returns the value of a derived stat for the player.
-    --- @param derivedStat string The derived stat key.
+    --- @param derivedStat KCDUtilsDerivedStats|KCDUtilsIntermediateStats|string The derived stat key.
     --- @return number|nil value The derived stat value, or nil if not found.
     function _instance.soul:GetDerivedStat(derivedStat)
-        return rawSoul:GetDerivedStat(derivedStat) or nil
+        if rawSoul and rawSoul.GetDerivedStat then
+            return rawSoul:GetDerivedStat(derivedStat)
+        end
+        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        logger:Error("Raw soul or GetDerivedStat method not found.")
+        return nil
     end
 
     --- Checks if the player has the specified skill.
-    --- @param skill string The skill key.
+    --- @param skill KCDUtilsSoulSkills|string The skill key.
     --- @return boolean|nil hasSkill True if the player has the skill, false/nil otherwise.
     function _instance.soul:HaveSkill(skill)
-        return rawSoul:HaveSkill(skill) or nil
+        return safeCall(rawSoul, "HaveSkill", true, skill)
     end
 
     --- Returns the current level of the specified skill for the player.
-    --- @param skill string The skill key.
+    --- @param skill KCDUtilsSoulSkills|string The skill key.
     --- @return number|nil value The skill level, or nil if not found.
     function _instance.soul:GetSkillLevel(skill)
-        return rawSoul:GetSkillLevel(skill) or nil
+        return safeCall(rawSoul, "GetSkillLevel", true, skill)
     end
 
     --- Returns the current progress (XP) towards the next level for the specified skill.
-    --- @param skill string The skill key.
+    --- @param skill KCDUtilsSoulSkills|string The skill key.
     --- @return number|nil progress The progress value, or nil if not found.
     function _instance.soul:GetSkillProgress(skill)
-        return rawSoul:GetSkillProgress(skill) or nil
+        return safeCall(rawSoul, "GetSkillProgress", true, skill)
     end
 
     --- Checks if the player has the specified ability.
     --- @param ability string The ability key.
     --- @return boolean|nil hasAbility True if the player has the ability, false/nil otherwise.
     function _instance.soul:HasAbility(ability)
-        return rawSoul:HasAbility(ability) or nil
+        return safeCall(rawSoul, "HasAbility", true, ability)
     end
 
     --- Advances the specified skill to the given level for the player.
-    --- @param skill string The skill key.
+    --- @param skill KCDUtilsSoulSkills|string The skill key.
     --- @param level number The level to advance to.
     function _instance.soul:AdvanceToSkillLevel(skill, level)
-        return rawSoul:AdvanceToSkillLevel(skill, level)
+        return safeCall(rawSoul, "AdvanceToSkillLevel", true, skill, level)
     end
 
     --- Adds experience points to the specified skill for the player.
-    --- @param skill string The skill key.
+    --- @param skill KCDUtilsSoulSkills|string The skill key.
     --- @param xp number The amount of XP to add.
     function _instance.soul:AddSkillXP(skill, xp)
-        return rawSoul:AddSkillXP(skill, xp)
+        return safeCall(rawSoul, "AddSkillXP", true, skill, xp)
     end
 
     --- Returns the XP required for the next level of the specified skill.
-    --- @param skill string The skill key.
-    --- @param level number The current skill level.
+    --- @param skill KCDUtilsSoulSkills|string The skill key.
     --- @return number|nil xp The XP required, or nil if not found.
-    function _instance.soul:GetNextLevelSkillXP(skill, level)
-        return rawSoul:GetNextLevelSkillXP(skill, level)
+    function _instance.soul:GetNextLevelSkillXP(skill)
+        return safeCall(rawSoul, "GetNextLevelSkillXP", true, skill)
     end
 
     --- Adds a buff to the player by its ID.
     --- @param buffId string The buff identifier.
     function _instance.soul:AddBuff(buffId)
-        return rawSoul:AddBuff(buffId)
+        return safeCall(rawSoul, "AddBuff", true, buffId)
     end
 
     --- Removes a specific buff instance from the player.
     --- @param buffInstance any The buff instance to remove.
     function _instance.soul:RemoveBuff(buffInstance)
-        return rawSoul:RemoveBuff(buffInstance)
+        return safeCall(rawSoul, "RemoveBuff", true, buffInstance)
     end
 
     --- Removes all buffs from the player that match the given GUID.
     --- @param buffGuid string The GUID of the buff(s) to remove.
     function _instance.soul:RemoveAllBuffsByGuid(buffGuid)
-        return rawSoul:RemoveAllBuffsByGuid(buffGuid)
+        return safeCall(rawSoul, "RemoveAllBuffsByGuid", true, buffGuid)
     end
 
     --- Adds a perk to the player by its ID.
     --- @param perkId string The perk identifier.
     function _instance.soul:AddPerk(perkId)
-        return rawSoul:AddPerk(perkId)
+        return safeCall(rawSoul, "AddPerk", true, perkId)
     end
 
     --- Removes a perk from the player by its ID.
     --- @param perkId string The perk identifier.
     function _instance.soul:RemovePerk(perkId)
-        return rawSoul:RemovePerk(perkId)
+        return safeCall(rawSoul, "RemovePerk", true, perkId)
     end
 
     --- Adds all codex entries in the players menu.
     function _instance.soul:AddAllCodexPerk()
-        return rawSoul:AddAllCodexPerk()
+        return safeCall(rawSoul, "AddAllCodexPerk", true)
     end
 
     --- Adds a meta role to the player by name.
     --- @param name string The name of the meta role.
     function _instance.soul:AddMetaRoleByName(name)
-        return rawSoul:AddMetaRoleByName(name)
+        return safeCall(rawSoul, "AddMetaRoleByName", true, name)
     end
 
     --- Removes a meta role from the player by name.
     --- @param name string The name of the meta role.
     function _instance.soul:RemoveMetaRoleByName(name)
-        return rawSoul:RemoveMetaRoleByName(name)
+        return safeCall(rawSoul, "RemoveMetaRoleByName", true, name)
     end
 
     --- Modifies the player's reputation for a given chance name, optionally propagating to the faction.
     --- @param repChanceName string The reputation chance name.
     --- @param propagateToFaction boolean Whether to propagate to the faction.
     function _instance.soul:ModifyPlayerReputation(repChanceName, propagateToFaction)
-        return rawSoul:ModifyPlayerReputation(repChanceName, propagateToFaction)
+        return safeCall(rawSoul, "ModifyPlayerReputation", true, repChanceName, propagateToFaction)
     end
 
     --- Gets the relationship value between the player and another soul.
     --- @param otherSoulWuid string The WUID of the other soul.
     --- @return number|nil value The relationship value, or nil if not found.
     function _instance.soul:GetRelationship(otherSoulWuid)
-        return rawSoul:GetRelationship(otherSoulWuid)
+        return safeCall(rawSoul, "GetRelationship", true, otherSoulWuid)
     end
 
     --- Calculates barter dominance against a shopkeeper.
     --- @param shopkeeperSoulWuid string The WUID of the shopkeeper's soul.
     --- @return number|nil value The dominance value, or nil if not found.
     function _instance.soul:CalculateBarterDominance(shopkeeperSoulWuid)
-        return rawSoul:CalculateBarterDominance(shopkeeperSoulWuid)
+        return safeCall(rawSoul, "CalculateBarterDominance", true, shopkeeperSoulWuid)
     end
 
     --- Checks if the player is currently in combat danger.
-    --- @return boolean hasDanger True if in danger, false otherwise.
+    --- @return boolean|nil hasDanger True if in danger, false otherwise.
     function _instance.soul:IsInCombatDanger()
-        return rawSoul:IsInCombatDanger()
+        return safeCall(rawSoul, "IsInCombatDanger", true)
     end
 
     --- Checks if the player is currently in combat mode.
     --- @return boolean|nil hasCombatMode True if in combat mode, false otherwise.
     function _instance.soul:IsInCombatMode()
-        return rawSoul:IsInCombatMode()
+        return safeCall(rawSoul, "IsInCombatMode", true)
     end
 
     --- Checks if the player is currently in a tense circumstance.
     --- @return boolean|nil hasTenseCircumstance True if in a tense circumstance, false otherwise.
     function _instance.soul:IsInTenseCircumstance()
-        return rawSoul:IsInTenseCircumstance()
+        return safeCall(rawSoul, "IsInTenseCircumstance", true)
     end
 
     --- Gets the string ID of the player's name.
-    --- @return string id The name string ID.
+    --- @return string|nil id The name string ID.
     function _instance.soul:GetNameStringId()
-        return rawSoul:GetNameStringId()
+        return safeCall(rawSoul, "GetNameStringId", true)
     end
 
     --- Gets the text for the read caption object.
     --- @return string|nil text The caption text.
     function _instance.soul:GetReadCaptionObjectText()
-        return rawSoul:GetReadCaptionObjectText()
+        return safeCall(rawSoul, "GetReadCaptionObjectText", true)
     end
 
     --- Checks if the player is currently a public enemy.
     --- @return boolean|nil isPublicEnemy True if public enemy, false otherwise.
     function _instance.soul:IsPublicEnemy()
-        return rawSoul:IsPublicEnemy()
+        return safeCall(rawSoul, "IsPublicEnemy", true)
     end
 
     --- Checks if it is legal to loot as the player.
     --- @return boolean|nil isLegalToLoot True if legal, false otherwise.
     function _instance.soul:IsLegalToLoot()
-        return rawSoul:IsLegalToLoot()
+       return safeCall(rawSoul, "IsLegalToLoot", true)
     end
 
     --- Checks if the player is currently dialog restricted.
     --- @return boolean|nil isDialogRestricted True if dialog restricted, false otherwise.
     function _instance.soul:IsDialogRestricted()
-        return rawSoul:IsDialogRestricted()
+        return safeCall(rawSoul, "IsDialogRestricted", true)
     end
 
     --- Gets the list of meta roles for the player.
     --- @return table|nil metaRoles The meta roles.
     function _instance.soul:GetMetaRoles()
-        return rawSoul:GetMetaRoles()
+        return safeCall(rawSoul, "GetMetaRoles", true)
     end
 
     --- Gets the player's current schedule.
     --- @return table|nil schedule The schedule.
     function _instance.soul:GetSchedule()
-        return rawSoul:GetSchedule()
+        return safeCall(rawSoul, "GetSchedule", true)
     end
 
     --- Gets the player's social class.
     --- @return string|nil socialClass The social class.
     function _instance.soul:GetSocialClass()
-        return rawSoul:GetSocialClass()
+        return safeCall(rawSoul, "GetSocialClass", true)
     end
 
     --- Gets the player's archetype.
     --- @return string|nil archetype The archetype.
     function _instance.soul:GetArchetype()
-        return rawSoul:GetArchetype()
+        return safeCall(rawSoul, "GetArchetype", true)
     end
 
     --- Gets the player's gender.
     --- @return string|nil gender The gender.
     function _instance.soul:GetGender()
-        return rawSoul:GetGender()
+        return safeCall(rawSoul, "GetGender", true)
     end
 
     --- Gets the player's gather multiplier.
     --- @return number|nil gatherMult The gather multiplier.
     function _instance.soul:GetGatherMult()
-        return rawSoul:GetGatherMult()
+        return safeCall(rawSoul, "GetGatherMult", true)
     end
 
     --- Gets the player's faction ID.
     --- @return string|nil factionID The faction ID.
     function _instance.soul:GetFactionID()
-        return rawSoul:GetFactionID()
+        return safeCall(rawSoul, "GetFactionID", true)
     end
 
     --- Checks if the player has the specified script context.
     --- @param contextName string The context name.
     --- @return boolean|nil hasScriptContext True if the context exists, false otherwise.
     function _instance.soul:HasScriptContext(contextName)
-        return rawSoul:HasScriptContext(contextName)
+        return safeCall(rawSoul, "HasScriptContext", true, contextName)
     end
 
     --- Checks if the player can eat the specified item.
     --- @param itemClassIdDef string The item class ID definition.
     --- @return boolean|nil canEatItem True if the item can be eaten, false otherwise.
     function _instance.soul:CanEatItem(itemClassIdDef)
-        return rawSoul:CanEatItem(itemClassIdDef)
+        return safeCall(rawSoul, "CanEatItem", true, itemClassIdDef)
     end
 
     --- Makes the player eat the specified item.
     --- @param itemClassIdDef string The item class ID definition.
     function _instance.soul:EatItem(itemClassIdDef)
-        return rawSoul:EatItem(itemClassIdDef)
+        return safeCall(rawSoul, "EatItem", true, itemClassIdDef)
+    end
+
+    --- Deals damage to a the given soul.
+    --- @param damage number The amount of damage to deal.
+    function _instance.soul:DealDamage(damage)
+        return safeCall(rawSoul, "DealDamage", true, damage)
+    end
+
+    --- Handles a companion-related event.
+    --- Accepts any number and type of arguments from the engine.
+    --- Logs all received parameters before forwarding them to rawSoul.
+    function _instance.soul:OnCompanionEvent(...)
+        local args = { ... }  -- capture all parameters into a table
+
+        -- Log the incoming event call
+        print("[OnCompanionEvent] Called with " .. tostring(#args) .. " argument(s).")
+        for i, v in ipairs(args) do
+            print("  arg[" .. i .. "] = " .. tostring(v))
+        end
+
+        -- Forward all parameters unchanged to the rawSoul implementation
+        return rawSoul:OnCompanionEvent(...)
+    end
+
+    --- Restricts the dialog for the player.
+    --- @param restrict boolean True to restrict, false to unrestrict.
+    function _instance.soul:RestrictDialog(restrict)
+        return safeCall(rawSoul, "RestrictDialog", true, restrict)
+    end
+
+    --- Heals bleeding effect from the player.
+    function _instance.soul:HealBleeding()
+        return safeCall(rawSoul, "HealBleeding", true)
+    end
+
+    --- Gets the unique identifier of the soul.
+    --- @return string|nil id The unique ID of the soul.
+    function _instance.soul:GetId()
+        return safeCall(rawSoul, "GetId", true)
     end
     -- #endregion
 
