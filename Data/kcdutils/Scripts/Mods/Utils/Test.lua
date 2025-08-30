@@ -1,16 +1,16 @@
 --- Represents the KCDUtils library
-KCDUtils.API = KCDUtils.API or {}
+KCDUtils.Test = KCDUtils.Test or {}
 
 --- Initializes the KCDUtils utility modules (nur einmal)
-function KCDUtils.API.Initialize()
-    if not KCDUtils.API.initiated then
-        KCDUtils.API.initiated = true
-        System.LogAlways("API: Initializing...")
+function KCDUtils.Test.Initialize()
+    if not KCDUtils.Test.initiated then
+        KCDUtils.Test.initiated = true
+        System.LogAlways("Test: Initializing...")
         local entities = {
             "Player",
         }
         for _, entity in ipairs(entities) do
-            local status, err = pcall(function() Script.ReloadScript("Scripts/Mods/Utils/API/" .. entity .. ".lua") end)
+            local status, err = pcall(function() Script.ReloadScript("Scripts/Mods/Utils/Tests/" .. entity .. ".lua") end)
             if not status then
                 System.LogAlways("Error loading KCDUtils." .. entity .. ": " .. tostring(err))
             else
@@ -20,4 +20,4 @@ function KCDUtils.API.Initialize()
     end
 end
 
-KCDUtils.API.Initialize()
+KCDUtils.Test.Initialize()

@@ -4,5 +4,8 @@
     "Script",
     "UIAction",
     "player"
+  ],
+  "Lua.diagnostics.disable": [
+    "undefined-doc-name"
   ]
 }

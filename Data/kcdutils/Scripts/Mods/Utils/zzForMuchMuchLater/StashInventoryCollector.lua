@@ -1,0 +1,11 @@
+-- [Function] StashInventoryCollector.GetNPCInformation | params: 0 | vararg: false
+-- [Function] StashInventoryCollector.GetOwnersData | params: 0 | vararg: false
+-- [Function] StashInventoryCollector.GetStashInformation | params: 0 | vararg: false
+-- [Function] StashInventoryCollector.GetHomeInhabitantsData | params: 0 | vararg: false
+-- [Function] StashInventoryCollector.GetStashOwner | params: 0 | vararg: false
+-- [Function] StashInventoryCollector.GetStashWuid | params: 0 | vararg: false
+-- [Function] StashInventoryCollector.IsShopStash | params: 0 | vararg: false
+-- [Function] StashInventoryCollector.IsMasterStash | params: 0 | vararg: false
+-- [Function] StashInventoryCollector.HasClothingLink | params: 0 | vararg: false
+-- [Function] StashInventoryCollector.GetStashHome | params: 0 | vararg: false
+-- [Function] StashInventoryCollector.GetOwnerPrefix | params: 0 | vararg: false

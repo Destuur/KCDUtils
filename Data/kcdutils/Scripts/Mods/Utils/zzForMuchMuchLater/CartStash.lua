@@ -1,0 +1,25 @@
+-- [Function] CartStash.Close | params: 0 | vararg: false
+-- [Function] CartStash.Unlock | params: 0 | vararg: false
+-- [Function] CartStash.PhysicalizeThis | params: 0 | vararg: false
+-- [Function] CartStash.SetInteractive | params: 0 | vararg: false
+-- [Function] CartStash.OnItemRemoved | params: 0 | vararg: false
+-- [Function] CartStash.OnUsed | params: 0 | vararg: false
+-- [Function] CartStash.GetUsableEvent | params: 0 | vararg: false
+-- [Function] CartStash.GetInventoryToOpen | params: 0 | vararg: false
+-- [Function] CartStash.UsesStealUiPrompt | params: 0 | vararg: false
+-- [Table] CartStash.__index
+--   (Metatable __index of CartStash.__index)
+-- [Table] CartStash.Server
+-- [Function] CartStash.Server.OnUpdate | params: 0 | vararg: false
+-- [Function] CartStash.Event_StartLockPicking | params: 0 | vararg: false
+-- [Function] CartStash.OnSave | params: 0 | vararg: false
+-- [Function] CartStash.SetBeingUsedByNPC | params: 0 | vararg: false
+-- [Function] CartStash.OnReset | params: 0 | vararg: false
+-- [Function] CartStash.IsUsableHold | params: 0 | vararg: false
+-- [Function] CartStash.IsUsable | params: 0 | vararg: false
+-- [Function] CartStash.GenerateLockData | params: 0 | vararg: false
+-- [Function] CartStash.IsUsableMsgChanged | params: 0 | vararg: false
+-- [Function] CartStash.Event_Close | params: 0 | vararg: false
+-- [Function] CartStash.ResetAnimationWithActivation | params: 0 | vararg: false
+-- [Function] CartStash.OnUsedHold | params: 0 | vararg: false
+-- [Function] CartStash.OnInventoryClosed | params: 0 | vararg: false

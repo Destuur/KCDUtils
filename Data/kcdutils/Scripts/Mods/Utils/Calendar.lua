@@ -1,0 +1,13 @@
+-- [Function] Calendar.SetWorldTimeRatio | params: 0 | vararg: false
+-- [Function] Calendar.GetWorldHourOfDay | params: 0 | vararg: false
+-- [Function] Calendar.IsNightTimeOfDay | params: 0 | vararg: false
+-- [Function] Calendar.GetGameTime | params: 0 | vararg: false
+-- [Function] Calendar.SetFakeTimeOfDay | params: 0 | vararg: false
+-- [Function] Calendar.UnfakeTimeOfDay | params: 0 | vararg: false
+-- [Function] Calendar.IsFakedTimeOfDay | params: 0 | vararg: false
+-- [Function] Calendar.GetWorldDay | params: 0 | vararg: false
+-- [Function] Calendar.GetWorldDayOfWeek | params: 0 | vararg: false
+-- [Function] Calendar.GetWorldTime | params: 0 | vararg: false
+-- [Function] Calendar.GetWorldTimeRatio | params: 0 | vararg: false
+-- [Function] Calendar.IsWorldTimePaused | params: 0 | vararg: false
+-- [Function] Calendar.SetWorldTime | params: 0 | vararg: false

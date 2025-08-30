@@ -5,13 +5,10 @@ KCDUtils.Entities = KCDUtils.Entities or {}
 function KCDUtils.Entities.Initialize()
     if not KCDUtils.Entities.initiated then
         KCDUtils.Entities.initiated = true
-        System.LogAlways("KCDUtils: Initializing...")
+        System.LogAlways("Entities: Initializing...")
         local entities = {
             "Horse",
             "Player",
-            "Player.Actor",
-            "Player.Human",
-            "Player.Soul",
         }
         for _, entity in ipairs(entities) do
             local status, err = pcall(function() Script.ReloadScript("Scripts/Mods/Utils/Entities/" .. entity .. ".lua") end)

@@ -1,0 +1,11 @@
+-- # [Function] Shops.CancelTransaction | params: 0 | vararg: false
+-- # [Function] Shops.AcceptTransaction | params: 0 | vararg: false
+-- # [Function] Shops.GetShopDBIdByLinkedEntityId | params: 0 | vararg: false
+-- # [Function] Shops.GetShopDBIdByKeeper | params: 0 | vararg: false
+-- # [Function] Shops.OpenInventory | params: 0 | vararg: false
+-- # [Function] Shops.FindShopInventoryForItem | params: 0 | vararg: false
+-- # [Function] Shops.DoMoneyTransaction | params: 0 | vararg: false
+-- # [Function] Shops.GetShopMoney | params: 0 | vararg: false
+-- # [Function] Shops.OpenInventoryForItem | params: 0 | vararg: false
+-- # [Function] Shops.IsShopOpened | params: 0 | vararg: false
+-- # [Function] Shops.FindItemInShop | params: 0 | vararg: false

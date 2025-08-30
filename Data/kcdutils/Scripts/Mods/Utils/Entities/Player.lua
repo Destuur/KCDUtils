@@ -6,21 +6,15 @@ local Player = {}
 Player.__index = Player
 
 local _instance = nil
-local safeCall = KCDUtils.Safe.Call
 
 --- Singleton-Getter
 function Player:Get()
     if _instance then return _instance end
 
-    local raw
-
-    if player then
-        raw = player
-    else
-        raw = KCDUtils.System.GetPlayer()
-        if not raw then
-            return nil
-        end
+    local safeCall = KCDUtils.Safe.Call
+    local raw = KCDUtils.System.GetPlayer()
+    if not raw then 
+        return nil 
     end
 
     _instance = { _raw = raw }
@@ -242,6 +236,12 @@ function Player:Get()
         return safeCall(rawSoul, "AddPerk", true, perkId)
     end
 
+    --- Checks if the player has the specified perk.
+    --- @param perkId string The perk identifier.
+    function _instance.soul:HasPerk(perkId)
+        return safeCall(rawSoul, "HasPerk", true, perkId)
+    end
+
     --- Removes a perk from the player by its ID.
     --- @param perkId string The perk identifier.
     function _instance.soul:RemovePerk(perkId)
@@ -406,12 +406,13 @@ function Player:Get()
     --- Accepts any number and type of arguments from the engine.
     --- Logs all received parameters before forwarding them to rawSoul.
     function _instance.soul:OnCompanionEvent(...)
+        local logger = KCDUtils.Logger.Factory("PlayerAPI")
         local args = { ... }  -- capture all parameters into a table
 
         -- Log the incoming event call
-        print("[OnCompanionEvent] Called with " .. tostring(#args) .. " argument(s).")
+        logger:Info("[OnCompanionEvent] Called with " .. tostring(#args) .. " argument(s).")
         for i, v in ipairs(args) do
-            print("  arg[" .. i .. "] = " .. tostring(v))
+            logger:Info("  arg[" .. i .. "] = " .. tostring(v))
         end
 
         -- Forward all parameters unchanged to the rawSoul implementation
@@ -462,39 +463,93 @@ function Player:Get()
     --- player.player
     --------------------------------------------------
     -- #region    
-    -- player.player.__index.IsLaying => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.CanSleepFast => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.CanSleep => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.CanBondHorse => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.RequestDogObjective => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.PushBack => function (Lua function) params: 0 | vararg: nil
+
+    --- @class KCDUtils.Entities.Player.Player
+    _instance.player = {}
+    local rawPlayer = raw.player
+
+    --- Checks if the player is currently laying down (e.g., in bed).
+    --- @return boolean isLaying True if the player is laying, false otherwise.
+    function _instance.player:IsLaying()
+        return safeCall(rawPlayer, "IsLaying", true)
+    end
+
+    --- Checks if the player can use fast sleep (skip time quickly).
+    --- @return boolean canSleepFast True if fast sleep is possible, false otherwise.
+    function _instance.player:CanSleepFast()
+        return safeCall(rawPlayer, "CanSleepFast", true)
+    end
+
+    --- Checks if the player can sleep at the current location.
+    --- @return boolean canSleep True if sleeping is possible, false otherwise.
+    function _instance.player:CanSleep()
+        return safeCall(rawPlayer, "CanSleep", true)
+    end
+
+    --- Checks if the player can bond with a horse.
+    --- @return boolean canBondHorse True if bonding is possible, false otherwise.
+    function _instance.player:CanBondHorse()
+        return safeCall(rawPlayer, "CanBondHorse", true)
+    end
+
+    --- Gets the player's current horse entity.
+    --- @return any horse The player's horse entity, or nil if not available.
+    function _instance.player:GetPlayerHorse()
+        return safeCall(rawPlayer, "GetPlayerHorse", true)
+    end
+
+    --- Checks if the player can sleep and report a problem (e.g., for quest logic).
+    --- @return boolean canSleepAndReportProblem True if possible, false otherwise.
+    function _instance.player:CanSleepAndReportProblem()
+        return safeCall(rawPlayer, "CanSleepAndReportProblem", true)
+    end
+
+    --- Checks if the player currently has a running dog objective.
+    --- @return boolean hasObjective True if a dog objective is running, false otherwise.
+    function _instance.player:HasRunningDogObjective()
+        return safeCall(rawPlayer, "HasRunningDogObjective", true)
+    end
+
+    --- Checks if the player is currently sitting.
+    --- @return boolean isSitting True if the player is sitting, false otherwise.
+    function _instance.player:IsSitting()
+        return safeCall(rawPlayer, "IsSitting", true)
+    end
+
+    --- Checks if the player is the target of combat chat.
+    --- @return boolean isCombatChatTarget True if the player is a combat chat target, false otherwise.
+    function _instance.player:IsCombatChatTarget()
+        return safeCall(rawPlayer, "IsCombatChatTarget", true)
+    end
+
+    --- Checks if the player is locked to an opponent (e.g., in combat).
+    --- @return boolean isLocked True if locked to an opponent, false otherwise.
+    function _instance.player:IsLockedToOpponent()
+        return safeCall(rawPlayer, "IsLockedToOpponent", true)
+    end
+
     -- player.player.__index.OnBedInterrupt => function (Lua function) params: 0 | vararg: nil
     -- player.player.__index.OnBedStop => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.GetPlayerHorse => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.SetWhistling => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.HasRunningDogObjective => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.CanSleepAndReportProblem => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.ClearPlayerHorse => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.CanChangeStanceObject => function (Lua function) params: 0 | vararg: nil
     -- player.player.__index.OnSleeping => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.CanMountHorse => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.AddSoAction => function (Lua function) params: 0 | vararg: nil
     -- player.player.__index.OnEnterInteractive => function (Lua function) params: 0 | vararg: nil
+    -- player.player.__index.OnEndInteractive => function (Lua function) params: 0 | vararg: nil
+    -- player.player.__index.OnBedPrepareForDialog => function (Lua function) params: 0 | vararg: nil
+    -- player.player.__index.HorseInspect => function (Lua function) params: 0 | vararg: nil
+    -- player.player.__index.GetHorseId => function (Lua function) params: 0 | vararg: nil
+    -- player.player.__index.ClearPlayerHorse => function (Lua function) params: 0 | vararg: nil
+    -- player.player.__index.CanMountHorse => function (Lua function) params: 0 | vararg: nil
     -- player.player.__index.SetPlayerHorse => function (Lua function) params: 0 | vararg: nil
+    -- player.player.__index.SetWhistling => function (Lua function) params: 0 | vararg: nil
+    -- player.player.__index.RequestDogObjective => function (Lua function) params: 0 | vararg: nil
+    -- player.player.__index.CancelDogObjective => function (Lua function) params: 0 | vararg: nil
+    -- player.player.__index.FeedDog => function (Lua function) params: 0 | vararg: nil
+    -- player.player.__index.PushBack => function (Lua function) params: 0 | vararg: nil
+    -- player.player.__index.AddSoAction => function (Lua function) params: 0 | vararg: nil
     -- player.player.__index.SetAlcoTeleportTarget => function (Lua function) params: 0 | vararg: nil
     -- player.player.__index.GetFlyMode => function (Lua function) params: 0 | vararg: nil
     -- player.player.__index.SetFlyMode => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.FeedDog => function (Lua function) params: 0 | vararg: nil
     -- player.player.__index.AddLuaActions => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.CancelDogObjective => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.OnEndInteractive => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.GetHorseId => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.HorseInspect => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.OnBedPrepareForDialog => function (Lua function) params: 0 | vararg: nil
     -- player.player.__index.EnableFastTravel => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.IsSitting => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.IsCombatChatTarget => function (Lua function) params: 0 | vararg: nil
-    -- player.player.__index.IsLockedToOpponent => function (Lua function) params: 0 | vararg: nil
     -- #endregion
 
     --------------------------------------------------
