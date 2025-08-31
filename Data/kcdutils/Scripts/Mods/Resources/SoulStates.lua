@@ -1,3 +1,6 @@
+KCDUtils = KCDUtils or {}
+KCDUtils.Resources = KCDUtils.Resources or {}
+
 ---@class KCDUtilsSoulStates
 -- Soul-related states
 KCDUtils.Resources.SoulStates = {

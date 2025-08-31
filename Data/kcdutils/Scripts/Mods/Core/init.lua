@@ -17,7 +17,7 @@ local function Initialize()
             "Logger",
             "Script",
             "System",
-            "UI",
+            "UIAction",
             "Vector",
         }
         for _, entity in ipairs(entities) do

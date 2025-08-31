@@ -12,6 +12,7 @@ local function Initialize()
             "SoulStates",
             "SoulStats",
             "StaticStats",
+            "UIActionElements",
         }
         for _, file in ipairs(files) do
             local status, err = pcall(function() Script.ReloadScript("Scripts/Mods/Resources/" .. file .. ".lua") end)

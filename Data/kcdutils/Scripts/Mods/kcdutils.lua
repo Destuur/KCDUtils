@@ -9,6 +9,7 @@
 ---@field Table KCDUtilsTable
 ---@field Math KCDUtilsMath
 ---@field String KCDUtilsString
+---@field UI KCDUtilsUI
 KCDUtils = {}
 
 local mods = {}

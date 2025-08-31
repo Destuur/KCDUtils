@@ -1,3 +1,28 @@
+KCDUtils = KCDUtils or {}
+KCDUtils.Entities = KCDUtils.Entities or {}
+KCDUtils.Entities.Horse = KCDUtils.Entities.Horse or {}
+
+function KCDUtils.Entities.Horse.LogTable(tbl, indent, visited)
+    indent = indent or 0
+    visited = visited or {}
+
+    if visited[tbl] then
+        System.LogAlways(string.rep("  ", indent) .. "*cycle*")
+        return
+    end
+    visited[tbl] = true
+
+    for k, v in pairs(tbl) do
+        local formatting = string.rep("  ", indent) .. tostring(k) .. ": "
+        if type(v) == "table" then
+            System.LogAlways(formatting)
+            KCDUtils.Entities.Horse.LogTable(v, indent + 1, visited)
+        else
+            System.LogAlways(formatting .. tostring(v))
+        end
+    end
+end
+
 -- [Function] Horse.FlowEvents.Inputs.Spawn.1 | params: 0 | vararg: false
 -- [Function] Horse.AddLootAction | params: 0 | vararg: false
 -- [Function] Horse.Event_SpawnKeep | params: 0 | vararg: false

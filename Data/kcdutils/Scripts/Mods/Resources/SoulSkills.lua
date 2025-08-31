@@ -1,3 +1,6 @@
+KCDUtils = KCDUtils or {}
+KCDUtils.Resources = KCDUtils.Resources or {}
+
 ---@class KCDUtilsSoulSkills
 -- Soul-related skills
 KCDUtils.Resources.SoulSkills = {

@@ -1,8 +1,32 @@
 KCDUtils = KCDUtils or {}
 KCDUtils.Core = KCDUtils.Core or {}
 
----@class KCDUtilsCoreUI
-KCDUtils.Core.UI = KCDUtils.Core.UI or {}
+---@class KCDUtilsCoreUIAction
+KCDUtils.Core.UIAction = KCDUtils.Core.UIAction or {}
+
+--- Calls a function on a UIAction element.
+---@param elementName string
+---@param functionName string
+---@param ... any
+---@return any
+function KCDUtils.Core.UIAction.CallFunction(elementName, functionName, ...)
+    System.LogAlways("UIAction.CallFunction: elementName=" .. tostring(elementName) .. ", functionName=" .. tostring(functionName))
+    if elementName == nil then
+        System.LogAlways("UIAction.CallFunction: No elementName provided!")
+        return nil
+    end
+    if functionName == nil then
+        System.LogAlways("UIAction.CallFunction: No functionName provided!")
+        return nil
+    end
+
+    if not Action then ---@diagnostic disable-line
+        System.LogAlways("UIAction.CallFunction: Action global is not available!")
+        return nil
+    end
+
+    return UIAction.CallFunction(elementName, -1, functionName, ...)
+end
 
 -- _G.UIAction.CallFunction => function (Lua function) params: 0 | vararg: nil
 -- _G.UIAction.GetRotation => function (Lua function) params: 0 | vararg: nil

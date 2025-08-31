@@ -1,3 +1,6 @@
+KCDUtils = KCDUtils or {}
+KCDUtils.Resources = KCDUtils.Resources or {}
+
 ---@class KCDUtilsDerivedStats
 -- Derived stats
 KCDUtils.Resources.DerivedStats = {
