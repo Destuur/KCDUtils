@@ -31,15 +31,20 @@ function KCDUtils.UI.ShowDiscoveredCodex(name, iconId, perkId)
     KCDUtils.Core.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowDiscoveredCodex", name, iconId, perkId)
 end
 
--- 0 no text
--- 1 you have learned
--- 2 you have discovered
+--- Shows discovered Points of Interest (POI)
+--- @param type KCDUtilsDiscoveredPoiType|integer Header type 
+--- @param name string Name of the POI
+--- @param iconId string Id of icon
+--- @param perkId string Id of perk
 function KCDUtils.UI.ShowDiscoveredPoi(type, name, iconId, perkId)
     KCDUtils.Core.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowDiscoveredPoi", type, name, iconId, perkId)
 end
 
--- 0 you have discovered small top right
--- 1 you have discovered big center
+--- Shows discovered Locations
+--- @param type KCDUtilsDiscoveredLocationType|integer Size and Position of UI Element
+--- @param name string Name of the Location
+--- @param iconId string Id of icon
+--- @param perkId string Id of perk
 function KCDUtils.UI.ShowDiscoveredLocation(type, name, iconId, perkId)
     KCDUtils.Core.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowDiscoveredLocation", type, name, iconId, perkId)
 end
@@ -48,38 +53,26 @@ function KCDUtils.UI.HideCodexActionHint()
     KCDUtils.Core.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "HideCodexActionHint")
 end
 
--- 0 nothing
--- 1 searching bunny
--- 2 trumpet bunny
--- 3 investigating bunny
--- 4 ears down bunny
--- 5 ears down walking bunny
--- 6 get out bunny
--- 7 halt bunny
--- 8 attacking bunny
--- 9 fighting bunny
--- 10 alarming bunny
+--- Sets the HUD element of the current crime state (Bunny beneath compass)
+--- @param state KCDUtilsCrimeState|integer Crime state
 function KCDUtils.UI.SetCrimeState(state)
     KCDUtils.Core.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "SetCrimeState", state)
 end
 
--- 0 - 9 for bunny ears
+--- Sets the HUD element of the current crime recognizing value
+--- @param value integer Goes from 0 to 9 and interacts with the bunny ears
 function KCDUtils.UI.SetCrimeRecognizingValue(value)
     KCDUtils.Core.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "SetCrimeRecognizingValue", value)
 end
 
--- high cooldown
--- 0 nothing
--- 1 trespassing red short first
--- 2 trespassing red short second
--- 3 private area blue first and blue trespassing icon right of the compass
--- 4 or more trespassing red short without cooldown
+--- Sets the HUD element of the current trespass state
+--- @param state KCDUtilsTrespassState|integer Trespass state
 function KCDUtils.UI.SetTrespassState(state)
     KCDUtils.Core.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "SetTrespassState", state)
 end
 
--- 0 nothing
--- 1 wanted
+--- Sets the HUD element of the current wanted state
+--- @param state KCDUtilsWantedState|integer Wanted state
 function KCDUtils.UI.SetWantedState(state)
     KCDUtils.Core.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "SetWantedState", state)
 end
