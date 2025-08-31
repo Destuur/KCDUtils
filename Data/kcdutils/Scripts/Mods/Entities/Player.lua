@@ -281,7 +281,7 @@ function Player:Get()
         return safeCall(rawSoul, "GetRelationship", true, otherSoulWuid)
     end
 
-    --- Calculates barter dominance against a shopkeeper.
+    --- Returns 1 if the soul has maximum dominance, -1 if the shopkeeper has maximum dominance 
     --- @param shopkeeperSoulWuid string The WUID of the shopkeeper's soul.
     --- @return number|nil value The dominance value, or nil if not found.
     function _instance.soul:CalculateBarterDominance(shopkeeperSoulWuid)
@@ -336,32 +336,32 @@ function Player:Get()
         return safeCall(rawSoul, "IsDialogRestricted", true)
     end
 
-    --- Gets the list of meta roles for the player.
+    --- Returns a table=array containing metarole ids. 
     --- @return table|nil metaRoles The meta roles.
     function _instance.soul:GetMetaRoles()
         return safeCall(rawSoul, "GetMetaRoles", true)
     end
 
-    --- Gets the player's current schedule.
+    --- Returns a table containing float-encoded times indexed by activities. 
     --- @return table|nil schedule The schedule.
     function _instance.soul:GetSchedule()
         return safeCall(rawSoul, "GetSchedule", true)
     end
 
-    --- Gets the player's social class.
-    --- @return string|nil socialClass The social class.
+    --- Returns social class as a table with Id, Name and Wealth keys.
+    --- @return table|nil socialClass The social class.
     function _instance.soul:GetSocialClass()
         return safeCall(rawSoul, "GetSocialClass", true)
     end
 
-    --- Gets the player's archetype.
-    --- @return string|nil archetype The archetype.
+    --- Returns a table containing the archetype properties.
+    --- @return table|nil archetype The archetype.
     function _instance.soul:GetArchetype()
         return safeCall(rawSoul, "GetArchetype", true)
     end
 
     --- Gets the player's gender.
-    --- @return string|nil gender The gender.
+    --- @return number|nil gender The gender.
     function _instance.soul:GetGender()
         return safeCall(rawSoul, "GetGender", true)
     end
@@ -399,11 +399,17 @@ function Player:Get()
     end
 
     --- Deals damage to a the given soul.
-    --- @param damage number The amount of damage to deal.
-    function _instance.soul:DealDamage(damage)
-        return safeCall(rawSoul, "DealDamage", true, damage)
+    --- @overload fun(stamina:number, health:number)
+    --- @param stamina number The amount of stamina to deal.
+    --- @param health number The amount of health to deal.
+    --- @param attackerId string|nil (optional) The ID of the attacker. Default is "invalid"
+    --- @param suppressHitreaction boolean|nil (optional) Whether to suppress hit reactions. Default is false
+    --- @param bodyPart string|nil (optional) The body part to deal damage to. Default is "null"
+    function _instance.soul:DealDamage(stamina, health, attackerId, suppressHitreaction, bodyPart)
+        return safeCall(rawSoul, "DealDamage", true, stamina, health, attackerId, suppressHitreaction, bodyPart)
     end
 
+    --- ### Currently not working
     --- Handles a companion-related event.
     --- Accepts any number and type of arguments from the engine.
     --- Logs all received parameters before forwarding them to rawSoul.
@@ -421,15 +427,17 @@ function Player:Get()
         return rawSoul:OnCompanionEvent(...)
     end
 
-    --- Restricts the dialog for the player.
+    --- Set soul to dialog restricted mode so it cannot be speak to (hint will not be shown, and this functionality is implemented in lua, using IsDialogRestricted) Also deletes all unfinished requests 
     --- @param restrict boolean True to restrict, false to unrestrict.
     function _instance.soul:RestrictDialog(restrict)
         return safeCall(rawSoul, "RestrictDialog", true, restrict)
     end
 
     --- Heals bleeding effect from the player.
-    function _instance.soul:HealBleeding()
-        return safeCall(rawSoul, "HealBleeding", true)
+    --- @param healing float The amount of healing to apply.
+    --- @param bodyPart KCDUtilsBodyPart The body part to heal.
+    function _instance.soul:HealBleeding(healing, bodyPart)
+        return safeCall(rawSoul, "HealBleeding", true, healing, bodyPart)
     end
 
     --- Gets the unique identifier of the soul.
@@ -562,6 +570,19 @@ function Player:Get()
     _instance.actor = {}
     local rawActor = raw.actor
 
+    --- Simuliert CameraShake über SetViewShake
+    --- @param amount number Stärke des Shakes
+    --- @param duration number Dauer in Sekunden
+    --- @param frequency number Frequenz des Shakes
+    function _instance.actor:CameraShake(amount, duration, frequency)
+        -- Einfacher Mapping-Trick: Shake nur über SetViewShake
+        local shakeAngle = { x = amount * 0.02, y = amount * 0.01, z = amount * 0.01 } -- leicht randomisiert
+        local shakeShift = { x = 0, y = 0, z = 0 } -- keine Verschiebung
+        local randomness = 0.5 -- optional: kann höher für mehr „wildes Wackeln“ sein
+
+        rawActor:SetViewShake(shakeAngle, shakeShift, duration, frequency, randomness)
+    end
+    
     -- player.actor.__index.RequestStealthKill => function (Lua function) params: 0 | vararg: nil
     -- player.actor.__index.EquipWeaponPreset => function (Lua function) params: 0 | vararg: nil
     -- player.actor.__index.SetMaxHealth => function (Lua function) params: 0 | vararg: nil
