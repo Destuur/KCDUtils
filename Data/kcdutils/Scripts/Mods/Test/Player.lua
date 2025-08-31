@@ -1,7 +1,5 @@
----@class KCDUtils.Tests.Player
-KCDUtils = KCDUtils or {}
-KCDUtils.Tests = KCDUtils.Tests or {}
-KCDUtils.Tests.Player = KCDUtils.Tests.Player or {}
+---@class KCDUtilsTestsPlayer
+KCDUtils.Test.Player = KCDUtils.Test.Player or {}
 
 --------------------------------------------------
 --- Assertions
@@ -9,7 +7,7 @@ KCDUtils.Tests.Player = KCDUtils.Tests.Player or {}
 -- #region Assertions
 
 local function assertEqual(actual, expected, message)
-    local logger = KCDUtils.Logger.Factory("Tests.Player")
+    local logger = KCDUtils.Core.Logger.Factory("Tests.Player")
     if actual ~= expected then
         local errorMessage = string.format("Assertion failed: %s (expected: %s, got: %s)", message or "", tostring(expected), tostring(actual))
         logger:Error(errorMessage)
@@ -17,7 +15,7 @@ local function assertEqual(actual, expected, message)
 end
 
 local function assertNotNil(value, message)
-    local logger = KCDUtils.Logger.Factory("Tests.Player")
+    local logger = KCDUtils.Core.Logger.Factory("Tests.Player")
     if value == nil then
         local errorMessage = string.format("Assertion failed: %s (value is nil)", message or "")
         logger:Error(errorMessage)
@@ -25,7 +23,7 @@ local function assertNotNil(value, message)
 end
 
 local function assertNil(value, message)
-    local logger = KCDUtils.Logger.Factory("Tests.Player")
+    local logger = KCDUtils.Core.Logger.Factory("Tests.Player")
     if value ~= nil then
         local errorMessage = string.format("Assertion failed: %s (value is not nil)", message or "")
         logger:Error(errorMessage)
@@ -33,7 +31,7 @@ local function assertNil(value, message)
 end
 
 local function assertTrue(value, message)
-    local logger = KCDUtils.Logger.Factory("Tests.Player")
+    local logger = KCDUtils.Core.Logger.Factory("Tests.Player")
     if value ~= true then
         local errorMessage = string.format("Assertion failed: %s (value is not true)", message or "")
         logger:Error(errorMessage)
@@ -41,7 +39,7 @@ local function assertTrue(value, message)
 end
 
 local function assertFalse(value, message)
-    local logger = KCDUtils.Logger.Factory("Tests.Player")
+    local logger = KCDUtils.Core.Logger.Factory("Tests.Player")
     if value ~= false then
         local errorMessage = string.format("Assertion failed: %s (value is not false)", message or "")
         logger:Error(errorMessage)
@@ -49,7 +47,7 @@ local function assertFalse(value, message)
 end
 
 local function assertType(value, expectedType, message)
-    local logger = KCDUtils.Logger.Factory("Tests.Player")
+    local logger = KCDUtils.Core.Logger.Factory("Tests.Player")
     if type(value) ~= expectedType then
         local errorMessage = string.format("Assertion failed: %s (expected type: %s, got: %s)", message or "", expectedType, type(value))
         logger:Error(errorMessage)
@@ -79,7 +77,7 @@ end
 -- #endregion Assertions
 
 local function createTestVariables()
-    local logger = KCDUtils.Logger.Factory("Tests.Player")
+    local logger = KCDUtils.Core.Logger.Factory("Tests.Player")
     if not player then
         return nil
     end
@@ -426,14 +424,14 @@ local function itemTests()
     logger:Info("Player Item tests completed.")
 end
 
-function KCDUtils.Tests.Player.Initialize()
-    KCDUtils.Event.OnGameplayStarted(KCDUtils.Tests.Player)
+function KCDUtils.Test.Player.Initialize()
+    KCDUtils.Core.Event.OnGameplayStarted(KCDUtils.Test.Player)
 end
 
-function KCDUtils.Tests.Player.OnGameplayStarted()
-    local logger = KCDUtils.Logger.Factory("Tests.Player")
-    if not KCDUtils.Tests.Player.initiated then
-        KCDUtils.Tests.Player.initiated = true
+function KCDUtils.Test.Player.OnGameplayStarted()
+    local logger = KCDUtils.Core.Logger.Factory("Tests.Player")
+    if not KCDUtils.Test.Player.initiated then
+        KCDUtils.Test.Player.initiated = true
         if not KCDUtils.Debug then
             logger:Error("KCDUtils.Debug module not found, cannot run tests.")
             return

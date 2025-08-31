@@ -1,4 +1,7 @@
-KCDUtils.Script = KCDUtils.Script or {}
+KCDUtils = KCDUtils or {}
+KCDUtils.Core = KCDUtils.Core or {}
+
+KCDUtils.Core.Script = KCDUtils.Core.Script or {}
 
 -- [Function] Script.ReloadEntityScript | params: 0 | vararg: false
 -- [Function] Script.DumpLoadedScripts | params: 0 | vararg: false

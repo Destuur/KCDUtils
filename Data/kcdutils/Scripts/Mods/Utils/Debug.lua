@@ -1,8 +1,8 @@
----@class KCDUtils.Debug
-local Debug = {}
+---@class KCDUtilsDebug
+KCDUtils.Debug = KCDUtils.Debug or {}
 
-function Debug.TestMethod(obj, name, ...)
-    local logger = KCDUtils.Logger.Factory("Debug")
+function KCDUtils.Debug.TestMethod(obj, name, ...)
+    local logger = KCDUtils.Core.Logger.Factory("Debug")
     local method = obj[name]
     if type(method) ~= "function" then
         logger:Error(name .. " is not a function")
@@ -15,5 +15,3 @@ function Debug.TestMethod(obj, name, ...)
         logger:Error(name .. " failed: " .. tostring(result))
     end
 end
-
-KCDUtils.Debug = Debug

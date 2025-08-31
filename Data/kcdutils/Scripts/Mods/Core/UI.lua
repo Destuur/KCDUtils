@@ -1,4 +1,8 @@
-KCDUtils.UI = KCDUtils.UI or {}
+KCDUtils = KCDUtils or {}
+KCDUtils.Core = KCDUtils.Core or {}
+
+---@class KCDUtilsCoreUI
+KCDUtils.Core.UI = KCDUtils.Core.UI or {}
 
 -- _G.UIAction.CallFunction => function (Lua function) params: 0 | vararg: nil
 -- _G.UIAction.GetRotation => function (Lua function) params: 0 | vararg: nil

@@ -1,12 +1,15 @@
+KCDUtils = KCDUtils or {}
+KCDUtils.Core = KCDUtils.Core or {}
+
 --- @class KCDUtils.System
-KCDUtils.System = KCDUtils and KCDUtils.System or {}
+KCDUtils.Core.System = KCDUtils.Core.System or {}
 
 --- Getter for any entity by name
 --- @param name (string) The name of the entity to retrieve.
 --- @return (any|nil) entity The entity with the specified name, or nil if not found.
-function KCDUtils.System.GetEntityByName(name)
-    local logger = KCDUtils.Logger.Factory("System")
-    local entity = System.GetEntityByName(name)
+function KCDUtils.Core.System.GetEntityByName(name)
+    local logger = KCDUtils.Core.Logger.Factory("System")
+    local entity = KCDUtils.Core.System.GetEntityByName(name)
     if not entity then
         logger:Warn("Entity with name '" .. tostring(name) .. "' not found.")
     end
@@ -15,9 +18,9 @@ end
 
 --- Getter for the player entity
 --- @return (any|nil) player The player entity, or nil if not found.
-function KCDUtils.System.GetPlayer()
-    local logger = KCDUtils.Logger.Factory("System")
-    local player = System.GetEntityByName("dude") or System.GetEntityByName("Player")
+function KCDUtils.Core.System.GetPlayer()
+    local logger = KCDUtils.Core.Logger.Factory("System")
+    local player = KCDUtils.Core.System.GetEntityByName("dude") or KCDUtils.Core.System.GetEntityByName("Player")
     if not player then
         logger:Warn("Player entity not found.")
     end

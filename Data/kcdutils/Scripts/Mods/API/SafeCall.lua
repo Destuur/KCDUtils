@@ -1,4 +1,5 @@
-KCDUtils.Safe = KCDUtils.Safe or {}
+---@type KCDUtils
+KCDUtils = KCDUtils or {}
 
 --- Safe method call wrapper for Lua 5.1
 --- @param obj table The object containing the method
@@ -6,8 +7,8 @@ KCDUtils.Safe = KCDUtils.Safe or {}
 --- @param useSelf boolean Whether to use the object as the self context
 --- @param ... any Optional arguments for the method
 --- @return any|nil result The method result or nil if unavailable
-function KCDUtils.Safe.Call(obj, methodName, useSelf, ...)
-    local logger = KCDUtils.Logger.Factory("SafeCall")
+function KCDUtils.SafeCall(obj, methodName, useSelf, ...)
+    local logger = KCDUtils.Core.Logger.Factory("SafeCall")
 
     -- Prüfen, ob das Objekt existiert
     if not obj then

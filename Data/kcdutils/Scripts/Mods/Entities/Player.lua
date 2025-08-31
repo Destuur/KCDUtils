@@ -1,7 +1,9 @@
---- @class KCDUtils.Entities.Player
---- @field soul KCDUtils.Entities.Player.Soul
---- @field actor KCDUtils.Entities.Player.Actor
---- @field human KCDUtils.Entities.Player.Human
+--- @class KCDUtilsEntitiesPlayer
+--- @field soul KCDUtilsEntitiesPlayerSoul
+--- @field actor KCDUtilsEntitiesPlayerActor
+--- @field human KCDUtilsEntitiesPlayerHuman
+--- @field inventory KCDUtilsEntitiesPlayerInventory
+--- @field player KCDUtilsEntitiesPlayerPlayer
 local Player = {}
 Player.__index = Player
 
@@ -11,8 +13,8 @@ local _instance = nil
 function Player:Get()
     if _instance then return _instance end
 
-    local safeCall = KCDUtils.Safe.Call
-    local raw = KCDUtils.System.GetPlayer()
+    local safeCall = KCDUtils.SafeCall
+    local raw = KCDUtils.Core.System.GetPlayer()
     if not raw then 
         return nil 
     end
@@ -56,8 +58,8 @@ function Player:Get()
     --------------------------------------------------
     --- player.soul
     --------------------------------------------------
-    -- #region    
-    --- @class KCDUtils.Entities.Player.Soul
+    -- #region 
+    --- @class KCDUtilsEntitiesPlayerSoul
     _instance.soul = {}
     local rawSoul = raw.soul
 
@@ -85,7 +87,7 @@ function Player:Get()
         if rawSoul and rawSoul.SetState then
             rawSoul:SetState(state, value)
         end
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Raw soul or SetState method not found.")
         return nil
     end
@@ -97,7 +99,7 @@ function Player:Get()
         if rawSoul and rawSoul.GetStatLevel then
             return rawSoul:GetStatLevel(stat)
         end
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Raw soul or GetStatLevel method not found.")
         return nil
     end
@@ -109,7 +111,7 @@ function Player:Get()
         if rawSoul and rawSoul.GetStatProgress then
             return rawSoul:GetStatProgress(stat) or nil
         end
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Raw soul or GetStatProgress method not found.")
         return nil
     end
@@ -121,7 +123,7 @@ function Player:Get()
         if rawSoul and rawSoul.AdvanceToStatLevel then
             rawSoul:AdvanceToStatLevel(stat, level)
         end
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Raw soul or AdvanceToStatLevel method not found.")
         return nil
     end
@@ -133,7 +135,7 @@ function Player:Get()
         if rawSoul and rawSoul.AddStatXP then
             rawSoul:AddStatXP(stat, xp)
         end
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Raw soul or AddStatXP method not found.")
         return nil
     end
@@ -146,7 +148,7 @@ function Player:Get()
         if rawSoul and rawSoul.GetNextLevelStatXP then
             return rawSoul:GetNextLevelStatXP(stat, xp)
         end
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Raw soul or GetNextLevelStatXP method not found.")
         return nil
     end
@@ -158,7 +160,7 @@ function Player:Get()
         if rawSoul and rawSoul.GetDerivedStat then
             return rawSoul:GetDerivedStat(derivedStat)
         end
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Raw soul or GetDerivedStat method not found.")
         return nil
     end
@@ -406,7 +408,7 @@ function Player:Get()
     --- Accepts any number and type of arguments from the engine.
     --- Logs all received parameters before forwarding them to rawSoul.
     function _instance.soul:OnCompanionEvent(...)
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         local args = { ... }  -- capture all parameters into a table
 
         -- Log the incoming event call
@@ -464,7 +466,7 @@ function Player:Get()
     --------------------------------------------------
     -- #region    
 
-    --- @class KCDUtils.Entities.Player.Player
+    --- @class KCDUtilsEntitiesPlayerPlayer
     _instance.player = {}
     local rawPlayer = raw.player
 
@@ -555,8 +557,8 @@ function Player:Get()
     --------------------------------------------------
     --- player.actor
     --------------------------------------------------
-    -- #region    
-    --- @class KCDUtils.Entities.Player.Actor
+    -- #region
+    --- @class KCDUtilsEntitiesPlayerActor
     _instance.actor = {}
     local rawActor = raw.actor
 
@@ -659,8 +661,8 @@ function Player:Get()
     --------------------------------------------------
     --- player.human
     --------------------------------------------------
-    -- #region    
-    --- @class KCDUtils.Entities.Player.Human
+    -- #region
+    --- @class KCDUtilsEntitiesPlayerHuman
     _instance.human = {}
     local rawHuman = raw.human
 

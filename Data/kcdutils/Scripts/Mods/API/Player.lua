@@ -1,4 +1,4 @@
----@class KCDUtils.Player
+---@class KCDUtilsPlayer
 local Player = {}
 Player.__index = Player
 
@@ -13,7 +13,7 @@ end
 function Player:GetHealth()
     local player = self:Get()
     if not player then
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Player entity not found.")
         return nil
     end
@@ -23,7 +23,7 @@ end
 function Player:SetHealth(value)
     local player = self:Get()
     if not player then
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Player entity not found.")
         return nil
     end
@@ -49,7 +49,7 @@ end
 function Player:GetStamina()
     local player = self:Get()
     if not player then
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Player entity not found.")
         return nil
     end
@@ -61,7 +61,7 @@ end
 function Player:SetStamina(value)
     local player = self:Get()
     if not player then
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Player entity not found.")
         return nil
     end
@@ -91,7 +91,7 @@ end
 function Player:GetExhaust()
     local player = self:Get()
     if not player then
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Player entity not found.")
         return nil
     end
@@ -103,7 +103,7 @@ end
 function Player:SetExhaust(value)
     local player = self:Get()
     if not player then
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Player entity not found.")
         return nil
     end
@@ -133,7 +133,7 @@ end
 function Player:GetHunger()
     local player = self:Get()
     if not player then
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Player entity not found.")
         return nil
     end
@@ -145,7 +145,7 @@ end
 function Player:SetHunger(value)
     local player = self:Get()
     if not player then
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Player entity not found.")
         return nil
     end
@@ -175,7 +175,7 @@ end
 function Player:GetKarma()
     local player = self:Get()
     if not player then
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Player entity not found.")
         return nil
     end
@@ -187,7 +187,7 @@ end
 function Player:SetKarma(value)
     local player = self:Get()
     if not player then
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Player entity not found.")
         return nil
     end
@@ -217,7 +217,7 @@ end
 function Player:GetAlcoholism()
     local player = self:Get()
     if not player then
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Player entity not found.")
         return nil
     end
@@ -229,7 +229,7 @@ end
 function Player:SetAlcoholism(value)
     local player = self:Get()
     if not player then
-        local logger = KCDUtils.Logger.Factory("PlayerAPI")
+        local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Player entity not found.")
         return nil
     end
@@ -264,4 +264,5 @@ end
 function Player:Teleport(position)
 end
 
+---@type KCDUtilsPlayer
 KCDUtils.Player = Player

@@ -1,46 +1,54 @@
---- Represents the KCDUtils library
-KCDUtils = KCDUtils or {}
-KCDUtils.Mods = KCDUtils.Mods or {}
+---@class KCDUtils
+---@field Resources KCDUtilsResources
+---@field Entities KCDUtilsEntities
+---@field Core KCDUtilsCore
+---@field Test KCDUtilsTest
+---@field API KCDUtilsAPI
+---@field Time KCDUtilsTime
+---@field Debug KCDUtilsDebug
+---@field Table KCDUtilsTable
+---@field Math KCDUtilsMath
+---@field String KCDUtilsString
+KCDUtils = {}
 
-local mods = KCDUtils.Mods
+local mods = {}
 
---- Initializes the KCDUtils utility modules (nur einmal)
-function KCDUtils.Initialize()
+local function Initialize()
     if not KCDUtils.initiated then
         KCDUtils.initiated = true
         System.LogAlways("KCDUtils: Initializing...")
-        local utils = {
+        local folders = {
             "API",
-            "Calendar",
             "Core",
-            "Debug",
             "Entities",
-            "Game",
-            "Math",
             "Resources",
-            "Safe",
-            "String",
-            "Table",
             -- "Test",
-            "Time",
-            "Vector",
+            "Utils",
         }
-        for _, util in ipairs(utils) do
-            local status, err = pcall(function() Script.ReloadScript("Scripts/Mods/Utils/" .. util .. ".lua") end)
+        for _, folder in ipairs(folders) do
+            local status, err = pcall(function() Script.ReloadScript("Scripts/Mods/" .. folder .. "/init.lua") end)
             if not status then
-                System.LogAlways("Error loading KCDUtils." .. util .. ": " .. tostring(err))
+                System.LogAlways("Error loading KCDUtils." .. folder .. ": " .. tostring(err))
             else
-                System.LogAlways("KCDUtils." .. util .. " loaded successfully.")
+                System.LogAlways("KCDUtils." .. folder .. " loaded successfully.")
             end
         end
     end
+    System.LogAlways("KCDUtils: Initialization complete.")
 end
 
 --- Registers a mod with KCDUtils
----@param modname string
-function KCDUtils.RegisterMod(modname)
-    mods[modname] = mods[modname] or {}
-    System.LogAlways("KCDUtils: Mod registered: " .. tostring(modname))
+---@param mod table
+---@return KCDUtilsCoreDB, KCDUtilsCoreLogger, KCDUtilsCoreConfig
+function KCDUtils.RegisterMod(mod)
+    local modName = mod.Name
+    mods[modName] = mods[modName] or {}
+
+    local db = KCDUtils.Core.DB.Factory(modName)
+    local logger = KCDUtils.Core.Logger.Factory(modName)
+    local config = KCDUtils.Core.Config.Factory(modName)
+
+    return db, logger, config
 end
 
-KCDUtils.Initialize()
+Initialize()
