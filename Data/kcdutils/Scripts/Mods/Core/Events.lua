@@ -1,9 +1,11 @@
 --- @diagnostic disable
+KCDUtils = KCDUtils or {}
+KCDUtils.Core = KCDUtils.Core or {}
 
----@class KCDUtilsEvent
-KCDUtils.Event = KCDUtils and KCDUtils.Event or {}
+---@class KCDUtilsCoreEvents
+KCDUtils.Core.Events = KCDUtils.Core.Events or {}
 
-if KCDUtils.Event.initialized then
+if KCDUtils.Core.Events.initialized then
     System.LogAlways("[EventForge] Already initialized, skipping EventForge.lua")
     return
 end
@@ -29,7 +31,7 @@ end
 ---@param modName (string) The name of the mod registering the event.
 ---@param description (string|nil) Optional description of the event's purpose.
 ---@param paramList (table|nil) Optional list of parameter names or descriptions for the event.
-function KCDUtils.Event.DefineEvent(eventName, modName, description, paramList)
+function KCDUtils.Core.Events.DefineEvent(eventName, modName, description, paramList)
     local logger = KCDUtils.Logger.Factory(modName)
 
     availableEvents[eventName] = availableEvents[eventName] or {}
@@ -68,7 +70,7 @@ end
 --- @param eventName (string) The name of the event to listen for.
 --- @param callbackFunction (function) The function to be called when the event is triggered.
 --- @param opts (table|nil) Optional table with fields 'modName' (string) and 'once' (boolean).
-function KCDUtils.Event.Subscribe(eventName, callbackFunction, opts)
+function KCDUtils.Core.Events.Subscribe(eventName, callbackFunction, opts)
     opts = opts or {}
     local logger = KCDUtils.Logger.Factory(opts.Name or "Unknown")
 
@@ -105,7 +107,7 @@ end
 --- @param target table Object that contains the callback method
 --- @param methodName string Name of the method on the target
 --- @param eventName string|nil Name of the system event (default = methodName)
-function KCDUtils.Event.SubscribeSystemEvent(target, methodName, eventName)
+function KCDUtils.Core.Events.SubscribeSystemEvent(target, methodName, eventName)
     local logger = KCDUtils.Logger.Factory(target.Name or "Unknown")
     eventName = eventName or methodName
     if not target[methodName] or type(target[methodName]) ~= "function" then
@@ -118,16 +120,16 @@ end
 
 --- Utility to subscribe a method as listener to the OnGameplayStarted event
 --- 
---- Callback method must have the signature:
+--- ### Callback method must have the signature:
 --- ```lua
---- function MyMod.OnGameplayStarted(actionName, eventName, argTable)
+--- function MyMod.OnGameplayStarted(actionName, eventName, argTable) -- parameters optional
 ---     -- handle event
 --- end
 --- ```
 --- 
 --- @param target table Object that contains the callback method "OnGameplayStarted"
-function KCDUtils.Event.OnGameplayStarted(target)
-    KCDUtils.Event.SubscribeSystemEvent(target, "OnGameplayStarted")
+function KCDUtils.Core.Events:RegisterOnGameplayStarted()
+    KCDUtils.Core.Events.SubscribeSystemEvent(self, "OnGameplayStarted")
 end
 
 --- Unsubscribes a previously subscribed listener for a specific event.
@@ -136,7 +138,7 @@ end
 ---
 --- @param eventName (string) The name of the event.
 --- @param callbackFunction (function) The callback function to remove.
-function KCDUtils.Event.Unsubscribe(eventName, callbackFunction)
+function KCDUtils.Core.Events.Unsubscribe(eventName, callbackFunction)
     local lst = listeners[eventName]
     if not lst then return end
     for i = #lst, 1, -1 do
@@ -160,7 +162,7 @@ end
 ---
 --- @param eventName (string) The name of the event to publish.
 --- @param ... (any) Arguments to pass to the listener callback functions.
-function KCDUtils.Event.Publish(eventName, ...)
+function KCDUtils.Core.Events.Publish(eventName, ...)
     System.LogAlways("Publish called for '" .. eventName .. "' with " .. select("#", ...) .. " args")
     local lst = listeners[eventName]
     if not lst or #lst == 0 then
@@ -192,10 +194,10 @@ end
 
 --- Logs all registered events and their descriptions/parameters to the system log.
 ---
---- Usage: EventForge.Events
+--- Usage: EventForge.Core.Events
 ---
 --- Lists all registered events and their descriptions/parameters.
-function KCDUtils.Event.ListEvents()
+function KCDUtils.Core.Events.ListEvents()
     System.LogAlways("---- Registered Events ----")
     for eventName, mods in pairs(availableEvents) do
         System.LogAlways("Event: " .. eventName)
@@ -215,7 +217,7 @@ end
 ---
 --- Lists all registered listeners for every event, including the mod name and whether the listener is set to fire only once.
 ---
-function KCDUtils.Event.ListSubscribers()
+function KCDUtils.Core.Events.ListSubscribers()
     System.LogAlways("---- Registered Listeners ----")
     local found = false
     for eventName, lst in pairs(listeners) do
@@ -236,7 +238,7 @@ end
 --- Logs all events registered by a specific mod to the system log.
 ---
 --- @param modName (string) The name of the mod whose events should be listed.
-function KCDUtils.Event.ListEventsByMod(modName)
+function KCDUtils.Core.Events.ListEventsByMod(modName)
     System.LogAlways("---- Events registered by " .. modName .. " ----")
     for eventName, mods in pairs(availableEvents) do
         for _, info in ipairs(mods) do
@@ -258,15 +260,15 @@ end
 -- #region Console Commands
 
 --- Console Commands for accessing EventForge functionality
--- System.AddCCommand("EventForge.Events", "KCDUtils.Event.DebugListEvents()", "List all registered events")
+-- System.AddCCommand("EventForge.Core.Events", "KCDUtils.Event.DebugListEvents()", "List all registered events")
 -- System.AddCCommand("EventForge.Listeners", "KCDUtils.Event.DebugListListeners()", "List all registered listeners for all events")
 -- #### Not working with params ####
 -- System.AddCCommand("EventForge.Listeners", "KCDUtils.Event.DebugListListeners()", "List all registered listeners for an event")
--- System.AddCCommand("EventForge.EventsByMod", "KCDUtils.Event.DebugListEventsByMod()", "List all events registered by a mod")
+-- System.AddCCommand("EventForge.Core.EventsByMod", "KCDUtils.Event.DebugListEventsByMod()", "List all events registered by a mod")
 -- #####################
 
 -- #endregion
 
 ------------------------------------------------
 
-KCDUtils.Event.initialized = true
+KCDUtils.Core.Events.initialized = true

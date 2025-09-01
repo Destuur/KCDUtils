@@ -1,26 +1,45 @@
----@class KCDUtilsDB
-local FactoryDB = KCDUtils and KCDUtils.DB or {}
+KCDUtils = KCDUtils or {}
+KCDUtils.Core = KCDUtils.Core or {}
+
+KCDUtils.Core.DB = KCDUtils.Core.DB or {}
 
 local cache = {}
 
----Factory for creating/retrieving a DB instance for a given mod.
----@param modName string Unique mod identifier
-function FactoryDB.Factory(modName)
+--- Factory for creating/retrieving a DB instance for a given mod.
+--- @param modName string Unique mod identifier
+--- @return KCDUtilsCoreDB
+function KCDUtils.Core.DB.Factory(modName)
     if cache[modName] then
         return cache[modName]
     end
 
-    local db = _G.DB.Create(modName) ---@diagnostic disable-line: undefined-field
-    local logger = KCDUtils.Logger.Factory(modName)
+    cache[modName] = {}
 
+    local db = _G.DB.Create(modName) ---@diagnostic disable-line: undefined-field
+    local logger = KCDUtils.Core.Logger.Factory(modName)
+
+    ---@class KCDUtilsCoreDB
     local instance = {
         Name = modName,
         DB = db
     }
 
-    --- Retrieves a value by key.
-    --- @param key string
-    --- @param log? boolean
+    -- -------------------------------------------------------------------
+    -- Local versions
+    -- -------------------------------------------------------------------
+
+    --- ### Retrieves a value by key
+    --- Retrieves a value stored in the mod DB. Can optionally log the access.
+    --- 
+    --- @param key string the DB key
+    --- @param log? boolean optional, if true logs the access
+    --- @return any? value the value associated with the key
+    --- 
+    --- Example:
+    --- ```lua
+    --- local value = MyMod.DB:Get("myKey", true)
+    --- MyMod.Logger:Info("Value: " .. tostring(value))
+    --- ```
     function instance:Get(key, log)
         local value = self.DB:Get(key)
         if log then
@@ -120,6 +139,3 @@ function FactoryDB.Factory(modName)
     cache[modName] = instance
     return instance
 end
-
----@type KCDUtilsDB
-KCDUtils.DB = FactoryDB

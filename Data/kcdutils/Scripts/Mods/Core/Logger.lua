@@ -1,11 +1,13 @@
----@class KCDUtilsLogger
-local FactoryLogger = KCDUtils and KCDUtils.Logger or {}
+KCDUtils = KCDUtils or {}
+KCDUtils.Core = KCDUtils.Core or {}
+
+KCDUtils.Core.Logger = KCDUtils.Core.Logger or {}
 local cache = {}
 
 ---Factory for creating/retrieving a Logger instance for a given mod.
 ---
 ---```lua
---- local logger = KCDUtils.Logger.Factory("MyMod", { defaultThrottle = true, defaultInterval = 10 })
+--- local logger = KCDUtils.Core.Logger.Factory("MyMod", { defaultThrottle = true, defaultInterval = 10 })
 --- logger:SetCategory("MyCategory", true, true, 10)
 --- logger:LogCategory("MyCategory", "This is a log message.")
 --- logger:Info("This is an info message.")
@@ -15,11 +17,15 @@ local cache = {}
 ---
 ---@param modName string Unique mod identifier
 ---@param options table|nil Optional settings: defaultThrottle = boolean, defaultInterval = number
-function FactoryLogger.Factory(modName, options)
+---@return KCDUtilsCoreLogger
+function KCDUtils.Core.Logger.Factory(modName, options)
     if cache[modName] then
         return cache[modName]
     end
+    cache[modName] = {}
     options = options or {}
+
+    ---@class KCDUtilsCoreLogger
     local instance = {
         Name = modName,
         defaultThrottle = options.defaultThrottle or false,
@@ -30,8 +36,6 @@ function FactoryLogger.Factory(modName, options)
         throttleEnabled = true, -- globaler Schalter für Throttle
     }
 
-    UIAction.RegisterEventSystemListener(instance, "System", "OnGameplayStarted", "OnGameplayStarted")
-    
     --- Adds or configures a log category for this logger instance.
     --- @param category string Name of the category
     --- @param enabled boolean|nil Whether the category is enabled (default: true)
@@ -41,19 +45,19 @@ function FactoryLogger.Factory(modName, options)
         enabled = enabled ~= false   -- default true
         throttle = throttle == nil and instance.defaultThrottle or throttle
         interval = interval or instance.defaultInterval
-        
+
         instance.categories[category] = {
             enabled = enabled,
             throttle = throttle,
             lastLogTime = 0,
             interval = interval
         }
-        
+
         if throttle then
             instance.queues[category] = nil
         end
     end
-    
+
     --- Enables or disables a log category.
     --- @param category string Name of the category
     --- @param enabled boolean Whether the category should be enabled
@@ -143,42 +147,42 @@ function FactoryLogger.Factory(modName, options)
     end
 
     --- Logs a general message (non-categorized).
-    --- 
+    ---
     --- Output:
     --- ```cs
     --- [ModName] This is your message
     --- ```
-    --- 
+    ---
     --- @param message string The message to log
     function instance:Log(message)   instance:LogCategory("General", message) end
 
     --- Logs an info message.
-    --- 
+    ---
     --- Output:
     --- ```cs
     --- [ModName][Info] This is your info message
     --- ```
-    --- 
+    ---
     --- @param message string The message to log
     function instance:Info(message)  instance:LogCategory("Info", message)    end
 
     --- Logs a warning message.
-    --- 
+    ---
     --- Output:
     --- ```cs
     --- [ModName][Warn] This is your warning message
     --- ```
-    --- 
+    ---
     --- @param message string The message to log
     function instance:Warn(message)  instance:LogCategory("Warn", message)    end
 
     --- Logs an error message.
-    --- 
+    ---
     --- Output:
     --- ```cs
     --- [ModName][Error] This is your error message
     --- ```
-    --- 
+    ---
     --- @param message string The message to log
     function instance:Error(message) instance:LogCategory("Error", message)   end
 
@@ -198,6 +202,3 @@ function FactoryLogger.Factory(modName, options)
     cache[modName] = instance
     return instance
 end
-
----@type KCDUtilsLogger
-KCDUtils.Logger = FactoryLogger

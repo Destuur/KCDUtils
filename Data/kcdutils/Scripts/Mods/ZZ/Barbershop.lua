@@ -1,0 +1,13 @@
+-- [Table] Barbershop
+-- [Table] Barbershop.hairGUIDs
+-- [Function] Barbershop.Create | params: 0 | vararg: false
+-- [Table] Barbershop.beardGUIDs
+-- [Table] Barbershop.barber
+-- [Function] Barbershop.Cleanup | params: 0 | vararg: false
+-- [Function] Barbershop.ChooseHair | params: 0 | vararg: false
+-- [Function] Barbershop.ChooseBeard | params: 0 | vararg: false
+-- [Table] enum_switch_recognitionState
+-- [Table] BedTrigger
+-- [Function] BedTrigger.OnSpawn | params: 0 | vararg: false
+-- [Function] BedTrigger.OnResourcesHostingInterrupted | params: 0 | vararg: false
+-- [Function] BedTrigger.GetOwner | params: 0 | vararg: false
