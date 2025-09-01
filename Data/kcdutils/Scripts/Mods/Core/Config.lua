@@ -31,9 +31,9 @@ function KCDUtils.Core.Config.Factory(modName)
         end
     end
 
-    --- Loads configuration values (e.g. from DB or fallback defaults).
-    --- For now: tries DB first, then falls back to defaults.
-    function instance:Load()
+    --- Loads configuration values.
+    --- If there are values in the DB, they will be used. Otherwise, defaults will be applied.
+    function instance:LoadFromDB()
         local db = KCDUtils.Core.DB.Factory(self.Name)
         for key, default in pairs(self.Defaults) do
             local val = db:Get(key)
@@ -47,11 +47,12 @@ function KCDUtils.Core.Config.Factory(modName)
         self.Loaded = true
     end
 
-
     --- Retrieves a config value.
-    --- @param key string
-    --- @param fallback any (optional) fallback if neither value nor default exists
-    function instance:Get(key, fallback)
+    --- @overload fun(self: object, key:string): any
+    --- @param key string The config key to retrieve.
+    --- @param fallback any Optional fallback if neither value nor default exists.
+    --- @return any The config value, default, or fallback.
+    function instance:GetValue(key, fallback)
         if self.Values[key] ~= nil then
             return self.Values[key]
         end
@@ -64,14 +65,14 @@ function KCDUtils.Core.Config.Factory(modName)
     --- Sets a config value (and persists it to DB).
     --- @param key string
     --- @param value any
-    function instance:Set(key, value)
+    function instance:SetValue(key, value)
         self.Values[key] = value
         local db = KCDUtils.Core.DB.Factory(self.Name)
         db:Set(key, value)
     end
 
     --- Persists the entire current config state into the DB.
-    function instance:SetAll()
+    function instance:SaveAll()
         local db = KCDUtils.Core.DB.Factory(self.Name)
         for k, v in pairs(self.Values) do
             db:Set(k, v)
@@ -79,12 +80,11 @@ function KCDUtils.Core.Config.Factory(modName)
     end
 
     --- Dumps current config values (for debugging/logging).
-    function instance:Dump()
+    function instance:DumpToLog()
         local db = KCDUtils.Core.DB.Factory(self.Name)
         db:Dump()
     end
 
-    System.LogAlways("Config [" .. modName .. "]: Instance created")
     cache[modName] = instance
     return instance
 end

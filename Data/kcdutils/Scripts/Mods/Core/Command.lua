@@ -4,7 +4,26 @@ KCDUtils.Core = KCDUtils.Core or {}
 ---@class KCDUtilsCoreCommand
 KCDUtils.Core.Command = KCDUtils.Core.Command or {}
 
---- Adds a console command for the specified mod
+--- Adds a console command for the specified mod.
+---
+--- Unlike AddFunction(), this version expects the callback as a global function name (string).
+---
+--- ### Example:
+---
+--- ```lua
+--- -- Define a global callback function
+--- function MyMod_Hello()
+---     System.LogAlways("Hello from MyMod!")
+--- end
+---
+--- -- Register the command
+--- KCDUtils.Core.Command.Add("MyMod", "hello", "MyMod_Hello", "Prints a hello message")
+--- ```
+---
+--- ### Usage:
+---
+--- Console command `MyMod.hello` writes "Hello from MyMod!" to the log.
+---
 --- @param modName string Unique mod identifier
 --- @param command string Command name
 --- @param callbackName string Callback function to execute as string
@@ -17,6 +36,26 @@ function KCDUtils.Core.Command.Add(modName, command, callbackName, description)
     System.AddCCommand(tostring(modName .. "." .. command), callbackName, description or "No description provided")
 end
 
+--- Adds a console command for the specified mod with an inline function callback
+--- Unlike Add(), this does not require a global function name. Instead, you can
+--- directly pass a Lua function, which will be wrapped and registered internally.
+--- 
+--- ### Example:
+--- 
+--- ```lua
+--- KCDUtils.Core.Command.AddFunction("MyMod", "ping", function()
+---    System.LogAlways("Pong!")
+--- end, "Ping test")
+--- ```
+---
+--- ### Usage:
+---
+--- Console command `MyMod.ping` writes "Pong!" to the log.
+---
+--- @param modName string Unique mod identifier
+--- @param command string Command name
+--- @param func function Function to execute when the command is called
+--- @param description string Command description
 function KCDUtils.Core.Command.AddFunction(modName, command, func, description)
     local wrapperName = modName .. "_" .. command .. "_wrapper"
 
@@ -25,4 +64,11 @@ function KCDUtils.Core.Command.AddFunction(modName, command, func, description)
     end
 
     System.AddCCommand(modName .. "." .. command, wrapperName .. "(%line)", description or "")
+end
+
+--- Executes a console command directly
+--- This allows running any console command from Lua code.
+--- @param command string The full console command to execute
+function KCDUtils.Core.Command.ExecuteCommand(command)
+    System.ExecuteCommand(command)
 end

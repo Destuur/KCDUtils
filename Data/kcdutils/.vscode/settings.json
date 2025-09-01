@@ -3,7 +3,8 @@
     "System",
     "Script",
     "UIAction",
-    "player"
+    "player",
+    "Calendar"
   ],
   "Lua.diagnostics.disable": [
     "undefined-doc-name"
