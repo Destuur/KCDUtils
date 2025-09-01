@@ -120,9 +120,9 @@ end
 
 --- Utility to subscribe a method as listener to the OnGameplayStarted event
 --- 
---- Callback method must have the signature:
+--- ### Callback method must have the signature:
 --- ```lua
---- function MyMod.OnGameplayStarted(actionName, eventName, argTable)
+--- function MyMod.OnGameplayStarted(actionName, eventName, argTable) -- parameters optional
 ---     -- handle event
 --- end
 --- ```
