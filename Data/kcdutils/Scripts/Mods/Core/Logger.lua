@@ -7,7 +7,7 @@ local cache = {}
 ---Factory for creating/retrieving a Logger instance for a given mod.
 ---
 ---```lua
---- local logger = KCDUtils.Logger.Factory("MyMod", { defaultThrottle = true, defaultInterval = 10 })
+--- local logger = KCDUtils.Core.Logger.Factory("MyMod", { defaultThrottle = true, defaultInterval = 10 })
 --- logger:SetCategory("MyCategory", true, true, 10)
 --- logger:LogCategory("MyCategory", "This is a log message.")
 --- logger:Info("This is an info message.")

@@ -86,6 +86,7 @@ function Player:Get()
     function _instance.soul:SetState(state, value)
         if rawSoul and rawSoul.SetState then
             rawSoul:SetState(state, value)
+            return
         end
         local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Raw soul or SetState method not found.")
@@ -122,6 +123,7 @@ function Player:Get()
     function _instance.soul:AdvanceToStatLevel(stat, level)
         if rawSoul and rawSoul.AdvanceToStatLevel then
             rawSoul:AdvanceToStatLevel(stat, level)
+            return
         end
         local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Raw soul or AdvanceToStatLevel method not found.")
@@ -134,6 +136,7 @@ function Player:Get()
     function _instance.soul:AddStatXP(stat, xp)
         if rawSoul and rawSoul.AddStatXP then
             rawSoul:AddStatXP(stat, xp)
+            return
         end
         local logger = KCDUtils.Core.Logger.Factory("PlayerAPI")
         logger:Error("Raw soul or AddStatXP method not found.")
@@ -702,12 +705,12 @@ function Player:Get()
 
     --- Requests a dialog interaction for the player.
     function _instance.human:RequestDialog()
-        return rawHuman:RequestDialog()
+        rawHuman:RequestDialog()
     end
 
     --- Interrupts all active dialogs for the player.
     function _instance.human:InterruptDialogs()
-        return rawHuman:InterruptDialogs()
+        rawHuman:InterruptDialogs()
     end
 
     --- Gets the source name for the current dialog request.
@@ -718,17 +721,17 @@ function Player:Get()
 
     --- Toggles the player's weapon (draw/holster).
     function _instance.human:ToggleWeapon()
-        return rawHuman:ToggleWeapon()
+        rawHuman:ToggleWeapon()
     end
 
     --- Draws the player's weapon.
     function _instance.human:DrawWeapon()
-        return rawHuman:DrawWeapon()
+        rawHuman:DrawWeapon()
     end
 
     --- Holsters the player's weapon.
     function _instance.human:HolsterWeapon()
-        return rawHuman:HolsterWeapon()
+        rawHuman:HolsterWeapon()
     end
 
     --- Checks if the player's weapon is currently drawn.
@@ -739,7 +742,7 @@ function Player:Get()
 
     --- Toggles the player's weapon set.
     function _instance.human:ToggleWeaponSet()
-        return rawHuman:ToggleWeaponSet()
+        rawHuman:ToggleWeaponSet()
     end
 
     --- Gets the archetype of the player's torch light.
@@ -751,7 +754,7 @@ function Player:Get()
     --- Makes the player grab onto a ladder.
     --- @param ladderId any The ladder ID.
     function _instance.human:GrabOnLadder(ladderId)
-        return rawHuman:GrabOnLadder(ladderId)
+        rawHuman:GrabOnLadder(ladderId)
     end
 
     --- Checks if the player is currently on a ladder.
@@ -763,42 +766,42 @@ function Player:Get()
     --- Mounts the specified horse.
     --- @param horseId string The horse ID.
     function _instance.human:Mount(horseId)
-        return rawHuman:Mount(horseId)
+        rawHuman:Mount(horseId)
     end
 
     --- Dismounts from the current horse.
     function _instance.human:Dismount()
-        return rawHuman:Dismount()
+        rawHuman:Dismount()
     end
 
     --- Performs bonding with the specified horse.
     --- @param horseId string The horse ID.
     function _instance.human:DoBonding(horseId)
-        return rawHuman:DoBonding(horseId)
+        rawHuman:DoBonding(horseId)
     end
 
     --- Gets the mount point for the specified horse.
     --- @param horseId string The horse ID.
     --- @return any mountPoint The mount point.
     function _instance.human:GetHorseMountPoint(horseId)
-        return rawHuman:GetHorseMountPoint(horseId)
+        rawHuman:GetHorseMountPoint(horseId)
     end
 
     --- Forces the player to mount the specified horse.
     --- @param horseId string The horse ID.
     function _instance.human:ForceMount(horseId)
-        return rawHuman:ForceMount(horseId)
+        rawHuman:ForceMount(horseId)
     end
 
     --- Forces the player to dismount from the horse.
     function _instance.human:ForceDismount()
-        return rawHuman:ForceDismount()
+        rawHuman:ForceDismount()
     end
 
     --- Starts reading the specified book.
     --- @param bookId string The book ID.
     function _instance.human:StartReading(bookId)
-        return rawHuman:StartReading(bookId)
+        rawHuman:StartReading(bookId)
     end
 
     --- Gets the item currently held in the specified hand.
@@ -810,7 +813,7 @@ function Player:Get()
 
     --- Stops the current animation for the player.
     function _instance.human:StopAnim()
-        return rawHuman:StopAnim()
+        rawHuman:StopAnim()
     end
 
     --- Gets the player's current horse.
@@ -828,7 +831,7 @@ function Player:Get()
     --- Requests to pickpocket the specified victim.
     --- @param victimEntityId string The victim's entity ID.
     function _instance.human:RequestPickpocketing(victimEntityId)
-        return rawHuman:RequestPickpocketing(victimEntityId)
+        rawHuman:RequestPickpocketing(victimEntityId)
     end
 
     --- Checks if the player is currently pickpocketing.

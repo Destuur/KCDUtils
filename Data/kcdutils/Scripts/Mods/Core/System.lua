@@ -1,7 +1,7 @@
 KCDUtils = KCDUtils or {}
 KCDUtils.Core = KCDUtils.Core or {}
 
---- @class KCDUtils.System
+--- @class KCDUtils.Core.System
 KCDUtils.Core.System = KCDUtils.Core.System or {}
 
 --- Getter for any entity by name

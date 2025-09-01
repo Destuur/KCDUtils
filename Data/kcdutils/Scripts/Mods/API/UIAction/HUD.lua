@@ -119,7 +119,7 @@ function KCDUtils.UI.ShowSkillCheckFail(skill)
 end
 
 function KCDUtils.UI.OnShowCodexActionHint(target, eventName, methodName)
-    KCDUtils.Core.Event.SubscribeSystemEvent(target, methodName, eventName)
+    KCDUtils.Core.Events.SubscribeSystemEvent(target, methodName, eventName)
 end
 
 -- #region Tooltip 

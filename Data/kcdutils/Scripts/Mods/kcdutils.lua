@@ -40,16 +40,16 @@ end
 
 --- Registers a mod with KCDUtils
 ---@param mod table
----@return KCDUtilsCoreDB, KCDUtilsCoreLogger, KCDUtilsCoreConfig
+---@return KCDUtilsCoreDB, KCDUtilsCoreLogger
 function KCDUtils.RegisterMod(mod)
     local modName = mod.Name
     mods[modName] = mods[modName] or {}
 
     local db = KCDUtils.Core.DB.Factory(modName)
     local logger = KCDUtils.Core.Logger.Factory(modName)
-    local config = KCDUtils.Core.Config.Factory(modName)
+    System.LogAlways("KCDUtils: Mod " .. tostring(modName) .. " registered.")
 
-    return db, logger, config
+    return db, logger
 end
 
 Initialize()
