@@ -1,1 +1,1 @@
-KCDUtils.Version = KCDUtils.Version or {}
+-- KCDUtils.Version = KCDUtils.Version or {}
