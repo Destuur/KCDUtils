@@ -1,12 +1,12 @@
 KCDUtils = KCDUtils or {}
---- @class KCDUtilsCoreDB
+--- @class KCDUtilsDB
 KCDUtils.DB = KCDUtils.DB or {}
 
 local cache = {}
 
 --- Factory for creating/retrieving a DB instance for a given mod.
 --- @param modName string Unique mod identifier
---- @return KCDUtilsCoreDB
+--- @return KCDUtilsDB
 function KCDUtils.DB.Factory(modName)
     if cache[modName] then
         return cache[modName]
@@ -17,7 +17,7 @@ function KCDUtils.DB.Factory(modName)
     local db = _G.DB.Create(modName) ---@diagnostic disable-line: undefined-field
     local logger = KCDUtils.Logger.Factory(modName)
 
-    ---@class KCDUtilsCoreDB
+    ---@class KCDUtilsDB
     local instance = {
         Name = modName,
         DB = db

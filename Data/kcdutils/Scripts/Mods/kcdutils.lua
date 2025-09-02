@@ -24,7 +24,7 @@ end
 
 --- Registers a mod with KCDUtils
 ---@param mod table
----@return KCDUtilsCoreDB, KCDUtilsCoreLogger
+---@return KCDUtilsDB, KCDUtilsLogger
 function KCDUtils.RegisterMod(mod)
     local modName = mod.Name
     mods[modName] = mods[modName] or {}

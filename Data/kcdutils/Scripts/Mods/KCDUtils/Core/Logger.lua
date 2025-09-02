@@ -16,7 +16,7 @@ local cache = {}
 ---
 ---@param modName string Unique mod identifier
 ---@param options table|nil Optional settings: defaultThrottle = boolean, defaultInterval = number
----@return KCDUtilsCoreLogger
+---@return KCDUtilsLogger
 function KCDUtils.Logger.Factory(modName, options)
     if cache[modName] then
         return cache[modName]
@@ -24,7 +24,7 @@ function KCDUtils.Logger.Factory(modName, options)
     cache[modName] = {}
     options = options or {}
 
-    ---@class KCDUtilsCoreLogger
+    ---@class KCDUtilsLogger
     local instance = {
         Name = modName,
         defaultThrottle = options.defaultThrottle or false,

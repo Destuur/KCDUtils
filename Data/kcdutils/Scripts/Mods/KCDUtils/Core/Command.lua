@@ -1,5 +1,5 @@
 KCDUtils = KCDUtils or {}
----@class KCDUtilsCoreCommand
+---@class KCDUtilsCommand
 KCDUtils.Command = KCDUtils.Command or {}
 
 --- Adds a console command for the specified mod.

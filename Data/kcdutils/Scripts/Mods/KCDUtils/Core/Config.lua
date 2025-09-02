@@ -1,5 +1,5 @@
 KCDUtils = KCDUtils or {}
---- @class KCDUtilsCoreConfig
+--- @class KCDUtilsConfig
 KCDUtils.Config = KCDUtils.Config or {}
 
 function KCDUtils.Config.LoadFromDB(modName, configTable)

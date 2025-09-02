@@ -1,6 +1,6 @@
 --- @diagnostic disable
 KCDUtils = KCDUtils or {}
----@class KCDUtilsCoreEvents
+---@class KCDUtilsEvents
 KCDUtils.Events = KCDUtils.Events or {}
 
 if KCDUtils.Events.initialized then
@@ -126,8 +126,8 @@ end
 --- ```
 --- 
 --- @param target table Object that contains the callback method "OnGameplayStarted"
-function KCDUtils.Events:RegisterOnGameplayStarted()
-    KCDUtils.Events.SubscribeSystemEvent(self, "OnGameplayStarted")
+function KCDUtils.Events.RegisterOnGameplayStarted(target)
+    KCDUtils.Events.SubscribeSystemEvent(target, "OnGameplayStarted")
 end
 
 --- Unsubscribes a previously subscribed listener for a specific event.
