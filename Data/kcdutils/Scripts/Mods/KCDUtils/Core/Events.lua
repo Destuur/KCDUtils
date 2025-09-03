@@ -1,7 +1,9 @@
 --- @diagnostic disable
 KCDUtils = KCDUtils or {}
 ---@class KCDUtilsEvents
-KCDUtils.Events = KCDUtils.Events or {}
+KCDUtils.Events = KCDUtils.Events or { Name = "KCDUtils.Events" }
+
+KCDUtils.Events.updaters = {}
 
 if KCDUtils.Events.initialized then
     System.LogAlways("[EventForge] Already initialized, skipping EventForge.lua")
@@ -29,7 +31,7 @@ end
 ---@param modName (string) The name of the mod registering the event.
 ---@param description (string|nil) Optional description of the event's purpose.
 ---@param paramList (table|nil) Optional list of parameter names or descriptions for the event.
-function KCDUtils.Events.DefineEvent(eventName, modName, description, paramList)
+function KCDUtils.Events.RegisterEvent(eventName, modName, description, paramList)
     local logger = KCDUtils.Logger.Factory(modName)
 
     availableEvents[eventName] = availableEvents[eventName] or {}
@@ -73,7 +75,7 @@ function KCDUtils.Events.Subscribe(eventName, callbackFunction, opts)
     local logger = KCDUtils.Logger.Factory(opts.Name or "Unknown")
 
     if type(callbackFunction) ~= "function" then
-        error("Callback must be a function")
+        logger:Error("Callback must be a function")
     end
 
     listeners[eventName] = listeners[eventName] or {}
@@ -130,6 +132,127 @@ function KCDUtils.Events.RegisterOnGameplayStarted(target)
     KCDUtils.Events.SubscribeSystemEvent(target, "OnGameplayStarted")
 end
 
+--- ### Registers a listener for a threshold event.
+--- 
+--- ### Examples:
+--- ```lua
+--- -- You can pass the callback function as anonymous function:
+--- KCDUtils.Events.RegisterThresholdEvent("health", 30, "below", function(value)
+---     -- here comes the callback logic
+--- end)
+--- 
+--- -- Or you can define a named function:
+--- KCDUtils.Events.RegisterThresholdEvent("stamina", 75, "above", SomeFunction)
+--- 
+--- function SomeFunction(value)
+---     -- here comes the callback logic
+--- end
+--- ```
+--- 
+--- @param soulState string Name of the soul state to monitor (e.g. "health", "stamina", "hunger").
+--- @param threshold number The threshold value to compare against.
+--- @param direction '"above"'|'"below"' The direction to monitor (above or below the threshold).
+--- @param callback fun(value:number) The callback function to call when the threshold is crossed. Will pass the current value of the monitored soul state.
+function KCDUtils.Events.RegisterThresholdEvent(soulState, threshold, direction, callback)
+    local logger = KCDUtils.Logger.Factory("KCDUtils.Events")
+
+    -- Defensive checks
+    if type(soulState) ~= "string" then
+        logger:Error("RegisterThresholdEvent: soulState must be a string")
+        return
+    end
+    if type(threshold) ~= "number" then
+        logger:Error("RegisterThresholdEvent: threshold must be a number")
+        return
+    end
+    if direction ~= "above" and direction ~= "below" then
+        logger:Error("RegisterThresholdEvent: direction must be 'above' or 'below'")
+        return
+    end
+    if type(callback) ~= "function" then
+        logger:Error("RegisterThresholdEvent: callback must be a function")
+        return
+    end
+
+    -- Event name
+    local eventName = string.format("SoulState.%s.%s%d", soulState, direction, threshold)
+    KCDUtils.Events.Subscribe(eventName, callback, { modName = "KCDUtils" })
+
+    -- Updater watcher state
+    local watcher = { lastState = nil }
+
+    -- Stable updater function
+    local fn = function()
+        local player = KCDUtils.Entities.Player:Get()
+        if not player or not player.soul then
+            return -- Player or soul system not ready
+        end
+
+        local value = player.soul:GetState(soulState)
+        if not value then
+            return -- Defensive: no value returned
+        end
+
+        local triggered = (direction == "below" and value < threshold)
+                       or (direction == "above" and value > threshold)
+
+        if triggered and watcher.lastState ~= true then
+            logger:Info(string.format("%s threshold triggered: %s = %s", soulState, soulState, tostring(value)))
+            KCDUtils.Events.Publish(eventName, value)
+        end
+
+        watcher.lastState = triggered
+    end
+
+    -- Ensure one updater per event
+    KCDUtils.Events.updatersByEvent = KCDUtils.Events.updatersByEvent or {}
+    if not KCDUtils.Events.updatersByEvent[eventName] then
+        KCDUtils.Events.RegisterUpdater(fn)
+        KCDUtils.Events.updatersByEvent[eventName] = fn
+    end
+end
+
+function KCDUtils.Events.RegisterDistanceTravelledEvent(callback)
+    local logger = KCDUtils.Logger.Factory("KCDUtils.Events")
+    if type(callback) ~= "function" then
+        logger:Error("RegisterDistanceTravelledEvent: callback must be a function")
+        return
+    end
+
+    local eventName = "Player.DistanceTravelled"
+    KCDUtils.Events.Subscribe(eventName, callback, { modName = KCDUtils.Name })
+
+    local lastPosition = nil
+    local totalDistance = 0
+
+    local fn = function(deltaTime)
+        deltaTime = deltaTime or 1.0
+        local player = KCDUtils.Entities.Player:Get()
+        if not player then return end
+
+        local pos = KCDUtils.Math.GetPlayerPosition(player._raw)
+        if not pos then return end
+
+        if lastPosition then
+            local dist = KCDUtils.Math.CalculateDistance(lastPosition, pos)
+            if dist > 0.05 then -- minimal filter
+                totalDistance = totalDistance + dist
+            end
+        end
+
+        lastPosition = pos
+
+        local speed = KCDUtils.Math.GetPlayerSpeed(player._raw, deltaTime, dist)
+        KCDUtils.Events.Publish("Player.DistanceTravelled", {
+            distance = totalDistance,
+            speed = speed,
+            position = pos
+        })
+    end
+
+    KCDUtils.Events.RegisterUpdater(fn)
+end
+
 --- Unsubscribes a previously subscribed listener for a specific event.
 ---
 --- Removes the given callback function from the list of listeners for the specified event.
@@ -146,6 +269,40 @@ function KCDUtils.Events.Unsubscribe(eventName, callbackFunction)
     end
     if #lst == 0 then listeners[eventName] = nil end
 end
+-- #endregion
+
+--------------------------------------------------
+--- Updater
+--------------------------------------------------
+-- #region Updater
+
+function KCDUtils.Events.RegisterUpdater(fn)
+    local logger = KCDUtils.Logger.Factory("KCDUtils.Events")
+    if type(fn) ~= "function" then
+        logger:Error("Attempted to register a non-function as updater!")
+        return
+    end
+    logger:Info("Registered updater function.")
+    table.insert(KCDUtils.Events.updaters, fn)
+end
+
+function KCDUtils.Events.WatchLoop()
+    if KCDUtils.Events.watchLoopRunning then
+        return
+    end
+    KCDUtils.Events.watchLoopRunning = true
+    for i, fn in ipairs(KCDUtils.Events.updaters) do
+        local ok, err = pcall(fn) -- dt not used currently
+        if not ok then
+        end
+    end
+    -- Schedule next tick
+    Script.SetTimer(1000, function()
+        KCDUtils.Events.watchLoopRunning = false
+        KCDUtils.Events.WatchLoop()
+    end)
+end
+
 -- #endregion
 
 --------------------------------------------------
@@ -266,7 +423,5 @@ end
 -- #####################
 
 -- #endregion
-
-------------------------------------------------
 
 KCDUtils.Events.initialized = true

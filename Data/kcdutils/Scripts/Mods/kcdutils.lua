@@ -9,17 +9,20 @@
 ---@field Math KCDUtilsMath
 ---@field String KCDUtilsString
 ---@field UI KCDUtilsUI
-KCDUtils = {}
+---@field Events KCDUtilsEvents
+---@field Name string
+KCDUtils = { Name = "KCDUtils" }
 
 local mods = {}
 
 local function Initialize()
     if not KCDUtils.initiated then
         KCDUtils.initiated = true
-        System.LogAlways("KCDUtils: Initializing...")
-        ScriptLoader.LoadFolder("Scripts/Mods/KCDUtils")
+        System.LogAlways(KCDUtils.Name .. ": Initializing...")
+        ScriptLoader.LoadFolder("Scripts/Mods/" .. KCDUtils.Name)
     end
-    System.LogAlways("KCDUtils: Initialization complete.")
+    KCDUtils.Events.RegisterOnGameplayStarted(KCDUtils)
+    System.LogAlways(KCDUtils.Name .. ": Initialization complete.")
 end
 
 --- Registers a mod with KCDUtils
@@ -31,9 +34,15 @@ function KCDUtils.RegisterMod(mod)
 
     local db = KCDUtils.DB.Factory(modName)
     local logger = KCDUtils.Logger.Factory(modName)
-    System.LogAlways("KCDUtils: Mod " .. tostring(modName) .. " registered.")
+    System.LogAlways(KCDUtils.Name .. ": Mod " .. tostring(modName) .. " registered.")
 
     return db, logger
+end
+
+function KCDUtils.OnGameplayStarted()
+    local logger = KCDUtils.Logger.Factory(KCDUtils.Name)
+    logger:Info("Starting WatchLoop")
+    Script.SetTimer(1000, KCDUtils.Events.WatchLoop) -- bind self!
 end
 
 Initialize()
