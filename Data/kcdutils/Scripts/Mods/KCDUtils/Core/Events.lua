@@ -6,14 +6,14 @@ KCDUtils.Events = KCDUtils.Events or { Name = "KCDUtils.Events" }
 KCDUtils.Events.updaters = {}
 
 if KCDUtils.Events.initialized then
-    System.LogAlways("[EventForge] Already initialized, skipping EventForge.lua")
+    System.LogAlways("[KCDUtils.Events] Already initialized, skipping Events.lua")
     return
 end
 
 local listeners = {}
 local cachedEvents = {}
 local availableEvents = {}
-table.unpack = table.unpack or unpack  -- Lua 5.1 compatibility
+table.unpack = table.unpack or unpack
 table.pack = table.pack or function(...)
     return { n = select("#", ...), ... }
 end
@@ -118,6 +118,93 @@ function KCDUtils.Events.SubscribeSystemEvent(target, methodName, eventName)
     logger:Info("Subscribed " .. tostring(methodName) .. " to system event '" .. eventName .. "'")
 end
 
+--- Unsubscribes a previously subscribed listener for a specific event.
+---
+--- Removes the given callback function from the list of listeners for the specified event.
+---
+--- @param eventName (string) The name of the event.
+--- @param callbackFunction (function) The callback function to remove.
+function KCDUtils.Events.Unsubscribe(eventName, callbackFunction)
+    local lst = listeners[eventName]
+    if not lst then return end
+    for i = #lst, 1, -1 do
+        if lst[i].callback == callbackFunction then
+            table.remove(lst, i)
+        end
+    end
+    if #lst == 0 then listeners[eventName] = nil end
+end
+-- #endregion
+
+--------------------------------------------------
+--- Updater
+--------------------------------------------------
+-- #region Updater
+
+
+function KCDUtils.Events.RegisterUpdater(fn)
+    local logger = KCDUtils.Logger.Factory("KCDUtils.Events")
+    if type(fn) ~= "function" then
+        logger:Error("Attempted to register a non-function as updater!")
+        return
+    end
+    logger:Info("Registered updater function.")
+    table.insert(KCDUtils.Events.updaters, fn)
+end
+
+function KCDUtils.Events.UnregisterUpdater(fn)
+    local logger = KCDUtils.Logger.Factory("KCDUtils.Events")
+    local found = false
+    
+    for i, updaterFn in ipairs(KCDUtils.Events.updaters) do
+        if updaterFn == fn then
+            table.remove(KCDUtils.Events.updaters, i)
+            found = true
+            break
+        end
+    end
+
+    if found then
+        logger:Info("Unregistered updater function.")
+    else
+        logger:Error("Attempted to unregister a function that was not found!")
+    end
+end
+
+function KCDUtils.Events.StartWatchLoop()
+    if KCDUtils.Events.watchLoopRunning then return end
+
+    KCDUtils.Events.watchLoopRunning = true
+
+    local logger = KCDUtils.Logger.Factory("KCDUtils.Events")
+    logger:Info("Starting Events watch loop.")
+    local function watchLoop()
+        local timerInterval = 16 -- ms
+        if #KCDUtils.Events.updaters > 0 then
+            for _, fn in ipairs(KCDUtils.Events.updaters) do
+                local ok, err = pcall(fn, timerInterval / 1000)
+                if not ok then
+                    KCDUtils.Logger.Factory("KCDUtils.Events"):Error("Updater failed: " .. tostring(err))
+                end
+            end
+            Script.SetTimer(timerInterval, watchLoop)
+        else
+            KCDUtils.Events.watchLoopRunning = false
+        end
+    end
+
+    logger:Info("Events watch loop started.")
+    watchLoop()
+end
+
+
+-- #endregion
+
+--------------------------------------------------
+--- Updater Events
+--------------------------------------------------
+-- #region Updater Events
+
 --- Utility to subscribe a method as listener to the OnGameplayStarted event
 --- 
 --- ### Callback method must have the signature:
@@ -156,7 +243,6 @@ end
 function KCDUtils.Events.RegisterThresholdEvent(soulState, threshold, direction, callback)
     local logger = KCDUtils.Logger.Factory("KCDUtils.Events")
 
-    -- Defensive checks
     if type(soulState) ~= "string" then
         logger:Error("RegisterThresholdEvent: soulState must be a string")
         return
@@ -174,23 +260,20 @@ function KCDUtils.Events.RegisterThresholdEvent(soulState, threshold, direction,
         return
     end
 
-    -- Event name
     local eventName = string.format("SoulState.%s.%s%d", soulState, direction, threshold)
     KCDUtils.Events.Subscribe(eventName, callback, { modName = "KCDUtils" })
 
-    -- Updater watcher state
     local watcher = { lastState = nil }
 
-    -- Stable updater function
     local fn = function()
         local player = KCDUtils.Entities.Player:Get()
         if not player or not player.soul then
-            return -- Player or soul system not ready
+            return
         end
 
         local value = player.soul:GetState(soulState)
         if not value then
-            return -- Defensive: no value returned
+            return
         end
 
         local triggered = (direction == "below" and value < threshold)
@@ -204,7 +287,6 @@ function KCDUtils.Events.RegisterThresholdEvent(soulState, threshold, direction,
         watcher.lastState = triggered
     end
 
-    -- Ensure one updater per event
     KCDUtils.Events.updatersByEvent = KCDUtils.Events.updatersByEvent or {}
     if not KCDUtils.Events.updatersByEvent[eventName] then
         KCDUtils.Events.RegisterUpdater(fn)
@@ -212,6 +294,21 @@ function KCDUtils.Events.RegisterThresholdEvent(soulState, threshold, direction,
     end
 end
 
+--- Registers a listener for distance travelled events.
+--- ### Callback method must have the signature:
+--- ```lua
+--- function MyMod.OnDistanceTravelled(data)
+---        local speed = data.speed
+---        local distance = data.distance
+---        local pos = data.position
+---    -- handle event
+--- end
+--- ```
+--- 
+--- @param callback fun(data:table) The callback function to call when the player has travelled a distance. The data table contains:
+---    - distance (number): The distance travelled during the last cycle (in meters).
+---    - speed (number): The current speed of the player (in meters per second).  
+---    - position (table): The current world position of the player as a table with x, y, z fields.
 function KCDUtils.Events.RegisterDistanceTravelledEvent(callback)
     local logger = KCDUtils.Logger.Factory("KCDUtils.Events")
     if type(callback) ~= "function" then
@@ -253,54 +350,64 @@ function KCDUtils.Events.RegisterDistanceTravelledEvent(callback)
     KCDUtils.Events.RegisterUpdater(fn)
 end
 
---- Unsubscribes a previously subscribed listener for a specific event.
----
---- Removes the given callback function from the list of listeners for the specified event.
----
---- @param eventName (string) The name of the event.
---- @param callbackFunction (function) The callback function to remove.
-function KCDUtils.Events.Unsubscribe(eventName, callbackFunction)
-    local lst = listeners[eventName]
-    if not lst then return end
-    for i = #lst, 1, -1 do
-        if lst[i].callback == callbackFunction then
-            table.remove(lst, i)
-        end
-    end
-    if #lst == 0 then listeners[eventName] = nil end
-end
--- #endregion
-
---------------------------------------------------
---- Updater
---------------------------------------------------
--- #region Updater
-
-function KCDUtils.Events.RegisterUpdater(fn)
-    local logger = KCDUtils.Logger.Factory("KCDUtils.Events")
-    if type(fn) ~= "function" then
-        logger:Error("Attempted to register a non-function as updater!")
-        return
-    end
-    logger:Info("Registered updater function.")
-    table.insert(KCDUtils.Events.updaters, fn)
+function KCDUtils.Events.OnWeaponDrawn()
+    KCDUtils.Events.Publish("Player.WeaponDrawn")
 end
 
-function KCDUtils.Events.WatchLoop()
-    if KCDUtils.Events.watchLoopRunning then
-        return
-    end
-    KCDUtils.Events.watchLoopRunning = true
-    for i, fn in ipairs(KCDUtils.Events.updaters) do
-        local ok, err = pcall(fn) -- dt not used currently
-        if not ok then
-        end
-    end
-    -- Schedule next tick
-    Script.SetTimer(1000, function()
-        KCDUtils.Events.watchLoopRunning = false
-        KCDUtils.Events.WatchLoop()
-    end)
+function KCDUtils.Events.OnWeaponSheathed()
+    KCDUtils.Events.Publish("Player.WeaponSheathed")
+end
+
+function KCDUtils.Events.OnEnterCombat()
+    KCDUtils.Events.Publish("Player.EnterCombat")
+end
+
+function KCDUtils.Events.OnExitCombat()
+    KCDUtils.Events.Publish("Player.ExitCombat")
+end
+
+function KCDUtils.Events.OnTimeOfDayChanged(newTime)
+    KCDUtils.Events.Publish("World.TimeOfDayChanged", newTime)
+end
+
+function KCDUtils.Events.OnWeatherChanged(newWeather)
+    KCDUtils.Events.Publish("World.WeatherChanged", newWeather)
+end
+
+function KCDUtils.Events.OnEnteringSettlement(settlement)
+    KCDUtils.Events.Publish("World.EnteringSettlement", settlement)
+end
+
+function KCDUtils.Events.OnLeavingSettlement(settlement)
+    KCDUtils.Events.Publish("World.LeavingSettlement", settlement)
+end
+
+function KCDUtils.Events.OnEnteringInterior(interior)
+    KCDUtils.Events.Publish("World.EnteringInterior", interior)
+end
+
+function KCDUtils.Events.OnLeavingInterior(interior)
+    KCDUtils.Events.Publish("World.LeavingInterior", interior)
+end
+
+function KCDUtils.Events.OnNearbyEnemiesDetected(enemies)
+    KCDUtils.Events.Publish("World.NearbyEnemiesDetected", enemies)
+end
+
+function KCDUtils.Events.OnSkillLevelUp(skillName, newLevel)
+    KCDUtils.Events.Publish("Player.SkillLevelUp", skillName, newLevel)
+end
+
+function KCDUtils.Events.OnReputationThresholdCrossed(factionName, newReputation)
+    KCDUtils.Events.Publish("Player.ReputationThresholdCrossed", factionName, newReputation)
+end
+
+function KCDUtils.Events.OnMoneyThresholdCrossed(newAmount)
+    KCDUtils.Events.Publish("Player.MoneyThresholdCrossed", newAmount)
+end
+
+function KCDUtils.Events.OnPeriodicTick(deltaTime)
+    KCDUtils.Events.Publish("Game.PeriodicTick", deltaTime)
 end
 
 -- #endregion
@@ -349,7 +456,7 @@ end
 
 --- Logs all registered events and their descriptions/parameters to the system log.
 ---
---- Usage: EventForge.Events
+--- Usage: KCDUtils.Events
 ---
 --- Lists all registered events and their descriptions/parameters.
 function KCDUtils.Events.ListEvents()
@@ -368,7 +475,7 @@ end
 ---
 --- Logs all listeners registered for all events to the system log.
 ---
---- Usage: EventForge.Listeners
+--- Usage: KCDUtils.Listeners
 ---
 --- Lists all registered listeners for every event, including the mod name and whether the listener is set to fire only once.
 ---
@@ -414,12 +521,12 @@ end
 --------------------------------------------------
 -- #region Console Commands
 
---- Console Commands for accessing EventForge functionality
--- System.AddCCommand("EventForge.Events", "KCDUtils.Event.DebugListEvents()", "List all registered events")
--- System.AddCCommand("EventForge.Listeners", "KCDUtils.Event.DebugListListeners()", "List all registered listeners for all events")
+--- Console Commands for accessing KCDUtils.Events functionality
+-- System.AddCCommand("KCDUtils.Events", "KCDUtils.Events.DebugListEvents()", "List all registered events")
+-- System.AddCCommand("KCDUtils.Listeners", "KCDUtils.Events.DebugListListeners()", "List all registered listeners for all events")
 -- #### Not working with params ####
--- System.AddCCommand("EventForge.Listeners", "KCDUtils.Event.DebugListListeners()", "List all registered listeners for an event")
--- System.AddCCommand("EventForge.EventsByMod", "KCDUtils.Event.DebugListEventsByMod()", "List all events registered by a mod")
+-- System.AddCCommand("KCDUtils.Listeners", "KCDUtils.Events.DebugListListeners()", "List all registered listeners for an event")
+-- System.AddCCommand("KCDUtils.EventsByMod", "KCDUtils.Events.DebugListEventsByMod()", "List all events registered by a mod")
 -- #####################
 
 -- #endregion
