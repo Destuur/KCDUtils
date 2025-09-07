@@ -1,95 +1,118 @@
-KCDUtils = KCDUtils
----@class KCDUtilsEvents
-KCDUtils.Events = KCDUtils.Events
+KCDUtils = KCDUtils or {}
+KCDUtils.Events = KCDUtils.Events or { Name = "KCDUtils.Events" }
 KCDUtils.Events.DistanceTravelled = KCDUtils.Events.DistanceTravelled or {}
 
--- Ein interner Zustand für das Event-Objekt
-KCDUtils.Events.DistanceTravelled.listeners = {}
-KCDUtils.Events.DistanceTravelled.isUpdaterRegistered = false
-KCDUtils.Events.DistanceTravelled.updaterFn = nil
+KCDUtils.Events.DistanceTravelled.listeners = KCDUtils.Events.DistanceTravelled.listeners or {}
+KCDUtils.Events.DistanceTravelled.isUpdaterRegistered = KCDUtils.Events.DistanceTravelled.isUpdaterRegistered or false
+KCDUtils.Events.DistanceTravelled.updaterFn = KCDUtils.Events.DistanceTravelled.updaterFn or nil
 
--- Fügt eine neue Subscription hinzu
-function KCDUtils.Events.DistanceTravelled.Add(callback, config)
+--- Registers a listener that triggers when the player has traveled a certain distance.
+---
+--- #### Example:
+--- ```lua
+--- KCDUtils.Events.DistanceTravelled.Add({ triggerDistance = 10 }, function(eventData)
+---     System.LogAlways("Player traveled " .. eventData.distance .. " units!")
+--- end)
+--- ```
+--- @param config table Optional configuration table:
+---        config.triggerDistance number -> Distance in game units after which callback is triggered (default 0).
+--- @param callback fun(eventData:table) Callback function called when distance threshold is reached.
+---        `eventData` contains:
+---        - distance: total distance traveled since tracker started
+---        - speed: current movement speed (units per second)
+---        - position: current player position {x, y, z}
+--- @return table|nil subscription object, can be removed with `DistanceTravelled.Remove`
+function KCDUtils.Events.DistanceTravelled.Add(config, callback)
     local logger = KCDUtils.Logger.Factory("KCDUtils.Events.DistanceTravelled")
     if type(callback) ~= "function" then
         logger:Error("Add: callback must be a function")
         return nil
     end
 
-    local newSubscription = {
+    config = config or {}
+    local newSub = {
         callback = callback,
         isPaused = false,
         lastTriggerDistance = 0,
-        triggerDistance = (config and config.triggerDistance) or 0
+        pausedDistanceOffset = nil,
+        triggerDistance = config.triggerDistance or 0
     }
-    
-    logger:Info("New DistanceTravelled subscription added with triggerDistance: " .. newSubscription.triggerDistance)
-    table.insert(KCDUtils.Events.DistanceTravelled.listeners, newSubscription)
-    
+
+    table.insert(KCDUtils.Events.DistanceTravelled.listeners, newSub)
+
     if not KCDUtils.Events.DistanceTravelled.isUpdaterRegistered then
-        KCDUtils.Events.DistanceTravelled:startUpdater()
+        KCDUtils.Events.DistanceTravelled.startUpdater()
         KCDUtils.Events.DistanceTravelled.isUpdaterRegistered = true
     end
 
-    logger:Info("DistanceTravelled subscription added.")
-    return newSubscription
+    return newSub
 end
 
--- Entfernt eine Subscription
+--- Removes a previously registered subscription.
+--- @param subscription table The subscription returned from `Add`.
 function KCDUtils.Events.DistanceTravelled.Remove(subscription)
-    local listeners = KCDUtils.Events.DistanceTravelled.listeners
-    for i, sub in ipairs(listeners) do
+    for i, sub in ipairs(KCDUtils.Events.DistanceTravelled.listeners) do
         if sub == subscription then
-            table.remove(listeners, i)
+            table.remove(KCDUtils.Events.DistanceTravelled.listeners, i)
             break
         end
     end
-
-    -- Stoppt den Updater, wenn keine Subscriber mehr vorhanden sind
-    if #listeners == 0 and KCDUtils.Events.DistanceTravelled.isUpdaterRegistered then
+    if #KCDUtils.Events.DistanceTravelled.listeners == 0 and KCDUtils.Events.DistanceTravelled.isUpdaterRegistered then
         KCDUtils.Events.UnregisterUpdater(KCDUtils.Events.DistanceTravelled.updaterFn)
         KCDUtils.Events.DistanceTravelled.isUpdaterRegistered = false
     end
 end
 
--- Interne Methode, die den Updater startet und die Berechnungslogik enthält
-function KCDUtils.Events.DistanceTravelled:startUpdater()
-    local lastPosition = nil
+--- Pauses a subscription temporarily.
+--- @param subscription table Subscription returned from `Add`.
+function KCDUtils.Events.DistanceTravelled.Pause(subscription)
+    if subscription then subscription.isPaused = true end
+end
+
+--- Resumes a previously paused subscription.
+--- @param subscription table Subscription returned from `Add`.
+function KCDUtils.Events.DistanceTravelled.Resume(subscription)
+    if subscription then
+        subscription.isPaused = false
+        subscription.pausedDistanceOffset = nil
+    end
+end
+
+--- Internal updater function. Tracks player distance every frame.
+function KCDUtils.Events.DistanceTravelled.startUpdater()
+    local lastPos = nil
     local totalDistance = 0
     local minDistanceFilter = 0.05
 
-    local logger = KCDUtils.Logger.Factory("KCDUtils.Events.DistanceTravelled")
-    logger:Info("DistanceTravelled updater started.")
     local fn = function(deltaTime)
         deltaTime = deltaTime or 1.0
-        local player = KCDUtils.Entities.Player:Get()
         if not player then return end
 
-        local pos = KCDUtils.Math.GetPlayerPosition(player._raw)
+        local pos = KCDUtils.Math.GetPlayerPosition(player)
         if not pos then return end
 
         local dist = 0
-        if lastPosition then
-            dist = KCDUtils.Math.CalculateDistance(lastPosition, pos)
+        if lastPos then
+            dist = KCDUtils.Math.CalculateDistance(lastPos, pos)
             if dist > minDistanceFilter then
                 totalDistance = totalDistance + dist
             end
         end
-        lastPosition = pos
+        lastPos = pos
 
-        local speed = dist / deltaTime  -- Rohgeschwindigkeit, unabhängig vom Filter
-        local data = {
-            distance = totalDistance,
-            speed = speed,
-            position = pos
-        }
+        local speed = dist / deltaTime
+        local data = { distance = totalDistance, speed = speed, position = pos }
 
-        for _, subscription in ipairs(self.listeners) do
-            if not subscription.isPaused then
-                if data.distance - subscription.lastTriggerDistance >= subscription.triggerDistance then
-                    subscription.callback(data)
-                    subscription.lastTriggerDistance = data.distance
+        for _, sub in ipairs(KCDUtils.Events.DistanceTravelled.listeners) do
+            if not sub.isPaused then
+                local effectiveLast = sub.pausedDistanceOffset or sub.lastTriggerDistance
+                if data.distance - effectiveLast >= sub.triggerDistance then
+                    sub.callback(data)
+                    sub.lastTriggerDistance = data.distance
+                    sub.pausedDistanceOffset = nil
                 end
+            else
+                sub.pausedDistanceOffset = sub.lastTriggerDistance
             end
         end
     end

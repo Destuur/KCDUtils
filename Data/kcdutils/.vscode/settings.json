@@ -5,7 +5,11 @@
     "UIAction",
     "player",
     "Calendar",
-    "ScriptLoader"
+    "ScriptLoader",
+    "Entity",
+    "EnvironmentModule",
+    "Physics",
+    "ent_all"
   ],
   "Lua.diagnostics.disable": [
     "undefined-doc-name"
