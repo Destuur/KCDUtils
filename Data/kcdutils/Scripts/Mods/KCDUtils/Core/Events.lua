@@ -3,8 +3,8 @@ KCDUtils = KCDUtils or {}
 ---@class KCDUtilsEvents
 KCDUtils.Events = KCDUtils.Events or { Name = "KCDUtils.Events" }
 
-KCDUtils.Events.updaters = {}
-KCDUtils.Events.watchLoopRunning = false
+KCDUtils.Events.updaters = KCDUtils.Events.updaters or {}
+KCDUtils.Events.watchLoopRunning = KCDUtils.Events.watchLoopRunning or false
 
 if KCDUtils.Events.initialized then
     System.LogAlways("[KCDUtils.Events] Already initialized, skipping Events.lua")
@@ -44,7 +44,6 @@ function KCDUtils.Events.RegisterEvent(eventName, modName, description, paramLis
 
     logger:Info("Event registered: '" .. eventName .. "'")
 end
-
 
 -- #endregion
 
@@ -109,7 +108,8 @@ end
 --- @param methodName string Name of the method on the target
 --- @param eventName string|nil Name of the system event (default = methodName)
 function KCDUtils.Events.SubscribeSystemEvent(target, methodName, eventName)
-    local logger = KCDUtils.Logger.Factory(target.Name or "Unknown")
+    local name = target.Name or ("Table@" .. tostring(target))
+    local logger = KCDUtils.Logger.Factory(name)
     eventName = eventName or methodName
     if not target[methodName] or type(target[methodName]) ~= "function" then
         logger:Error("Target does not have a method named '" .. methodName .. "'")

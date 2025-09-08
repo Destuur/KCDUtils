@@ -11,7 +11,8 @@
 ---@field UI KCDUtilsUI
 ---@field Events KCDUtilsEvents
 ---@field Name string
-KCDUtils = { Name = "KCDUtils" }
+KCDUtils = KCDUtils or {}
+KCDUtils.Name = KCDUtils.Name or "KCDUtils"
 
 local mods = {}
 
@@ -42,6 +43,7 @@ end
 function KCDUtils.OnGameplayStarted()
     local logger = KCDUtils.Logger.Factory(KCDUtils.Name)
     logger:Info("Starting WatchLoop")
+
     Script.SetTimer(1000, KCDUtils.Events.WatchLoop) -- bind self!
 end
 
