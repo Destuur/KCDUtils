@@ -1,54 +1,22 @@
+-- ============================================================================ 
+-- KCDUtils.Events.MountedStateChanged (Reload-sicher)
+-- ============================================================================
+
 KCDUtils = KCDUtils or {}
-KCDUtils.Events = KCDUtils.Events or { Name = "KCDUtils.Events" }
+KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.MountedStateChanged = KCDUtils.Events.MountedStateChanged or {}
 
-KCDUtils.Events.MountedStateChanged.listeners = KCDUtils.Events.MountedStateChanged.listeners or {}
-KCDUtils.Events.MountedStateChanged.isUpdaterRegistered = KCDUtils.Events.MountedStateChanged.isUpdaterRegistered or false
-KCDUtils.Events.MountedStateChanged.updaterFn = KCDUtils.Events.MountedStateChanged.updaterFn or nil
-KCDUtils.Events.MountedStateChanged.lastState = KCDUtils.Events.MountedStateChanged.lastState or nil
+local MSC = KCDUtils.Events.MountedStateChanged
 
---- ### Registers a listener for mount state changes.
----
---- #### Examples:
---- ```lua
---- -- Fire whenever mounting happens
---- KCDUtils.Events.MountedStateChanged.Add({ direction = "mounted" }, function(data)
----     System.LogAlways("Player mounted horse:", data.isMounted, "wasMounted:", data.wasMounted)
---- end)
----
---- -- Fire whenever dismounting happens
---- KCDUtils.Events.MountedStateChanged.Add({ direction = "dismounted" }, function(data)
----     System.LogAlways("Player dismounted horse:", data.isMounted, "wasMounted:", data.wasMounted)
---- end)
----
---- -- Fire on both transitions, only once
---- KCDUtils.Events.MountedStateChanged.Add({ direction = "both", once = true }, function(data)
----     System.LogAlways("Triggered once:", data.isMounted, "wasMounted:", data.wasMounted)
---- end)
---- ```
----
---- @param config table|function Configuration table or directly the callback function.
----        config.direction '"mounted"'|'"dismounted"'|'"both"' (default: "both")
----        config.once boolean (default: false)
---- @param callback fun(data:{isMounted:boolean, wasMounted:boolean, direction:string})|nil Callback invoked when the state changes.
---- @return table A subscription object that can be removed.
-function KCDUtils.Events.MountedStateChanged.Add(config, callback)
-    local logger = KCDUtils.Logger.Factory("KCDUtils.Events.MountedStateChanged")
+MSC.listeners = MSC.listeners or {}
+MSC.isUpdaterRegistered = MSC.isUpdaterRegistered or false
+MSC.updaterFn = MSC.updaterFn or nil
+MSC.lastState = MSC.lastState or nil
 
-    if type(config) == "function" then
-        callback = config
-        config = {}
-    elseif type(config) ~= "table" then
-        logger:Error("Invalid parameters for MountedStateChanged.Add")
-        return {}
-    end
-
-    if type(callback) ~= "function" then
-        logger:Error("Callback must be a function for MountedStateChanged.Add")
-        return {}
-    end
-
-    local newSub = {
+-- Interne Add/Remove Methoden
+local function addListener(config, callback)
+    config = config or {}
+    local sub = {
         callback = callback,
         config = {
             direction = config.direction or "both",
@@ -56,83 +24,82 @@ function KCDUtils.Events.MountedStateChanged.Add(config, callback)
         },
         isPaused = false
     }
-
-    table.insert(KCDUtils.Events.MountedStateChanged.listeners, newSub)
-
-    if not KCDUtils.Events.MountedStateChanged.isUpdaterRegistered then
-        KCDUtils.Events.MountedStateChanged:startUpdater()
-        KCDUtils.Events.MountedStateChanged.isUpdaterRegistered = true
+    table.insert(MSC.listeners, sub)
+    if not MSC.isUpdaterRegistered then
+        MSC.startUpdater()
+        MSC.isUpdaterRegistered = true
     end
-
-    return newSub
+    return sub
 end
 
-function KCDUtils.Events.MountedStateChanged.Remove(sub)
-    for i, s in ipairs(KCDUtils.Events.MountedStateChanged.listeners) do
-        if s == sub then
-            table.remove(KCDUtils.Events.MountedStateChanged.listeners, i)
+local function removeListener(sub)
+    for i = #MSC.listeners, 1, -1 do
+        if MSC.listeners[i] == sub then
+            table.remove(MSC.listeners, i)
             break
         end
     end
-    if #KCDUtils.Events.MountedStateChanged.listeners == 0 and KCDUtils.Events.MountedStateChanged.isUpdaterRegistered then
-        KCDUtils.Events.UnregisterUpdater(KCDUtils.Events.MountedStateChanged.updaterFn)
-        KCDUtils.Events.MountedStateChanged.isUpdaterRegistered = false
-        KCDUtils.Events.MountedStateChanged.lastState = nil
+    if #MSC.listeners == 0 and MSC.isUpdaterRegistered then
+        KCDUtils.Events.UnregisterUpdater(MSC.updaterFn)
+        MSC.isUpdaterRegistered = false
+        MSC.lastState = nil
     end
 end
 
-function KCDUtils.Events.MountedStateChanged.Pause(sub)
-    if sub then sub.isPaused = true end
-end
+MSC.Pause = function(sub) if sub then sub.isPaused = true end end
+MSC.Resume = function(sub) if sub then sub.isPaused = false end end
 
-function KCDUtils.Events.MountedStateChanged.Resume(sub)
-    if sub then sub.isPaused = false end
-end
-
-function KCDUtils.Events.MountedStateChanged:startUpdater()
+function MSC.startUpdater()
     local fn = function(deltaTime)
         if not player or not player.human then return end
 
         local current = player.human:IsMounted()
 
-        -- Initialize state on first update
-        if KCDUtils.Events.MountedStateChanged.lastState == nil then
-            KCDUtils.Events.MountedStateChanged.lastState = current
+        -- Initialzustand
+        if MSC.lastState == nil then
+            MSC.lastState = current
             return
         end
 
-        if current ~= KCDUtils.Events.MountedStateChanged.lastState then
-            for i = #KCDUtils.Events.MountedStateChanged.listeners, 1, -1 do
-                local sub = KCDUtils.Events.MountedStateChanged.listeners[i]
+        if current ~= MSC.lastState then
+            for i = #MSC.listeners, 1, -1 do
+                local sub = MSC.listeners[i]
                 if not sub.isPaused then
-                    local directionConfig = sub.config.direction
+                    local dirConfig = sub.config.direction
                     local trigger = false
-                    local directionStr = current and "mounted" or "dismounted"
+                    local dirStr = current and "mounted" or "dismounted"
 
-                    if current and (directionConfig == "mounted" or directionConfig == "both") then
+                    if current and (dirConfig == "mounted" or dirConfig == "both") then
                         trigger = true
-                    elseif not current and (directionConfig == "dismounted" or directionConfig == "both") then
+                    elseif not current and (dirConfig == "dismounted" or dirConfig == "both") then
                         trigger = true
                     end
 
                     if trigger then
                         sub.callback({
                             isMounted = current,
-                            wasMounted = KCDUtils.Events.MountedStateChanged.lastState,
-                            direction = directionStr
+                            wasMounted = MSC.lastState,
+                            direction = dirStr
                         })
 
-                        if sub.config.once then
-                            table.remove(KCDUtils.Events.MountedStateChanged.listeners, i)
-                        end
+                        if sub.config.once then removeListener(sub) end
                     end
                 end
             end
 
-            KCDUtils.Events.MountedStateChanged.lastState = current
+            MSC.lastState = current
         end
     end
 
-    KCDUtils.Events.MountedStateChanged.updaterFn = fn
+    MSC.updaterFn = fn
     KCDUtils.Events.RegisterUpdater(fn)
+end
+
+-- Reload-sichere Add/Remove Funktionen für Modder
+function MSC.Add(config, callback)
+    return addListener(config, callback)
+end
+
+function MSC.Remove(sub)
+    return removeListener(sub)
 end

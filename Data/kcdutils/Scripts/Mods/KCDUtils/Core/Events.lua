@@ -1,22 +1,32 @@
 --- @diagnostic disable
 KCDUtils = KCDUtils or {}
 ---@class KCDUtilsEvents
-KCDUtils.Events = KCDUtils.Events or { Name = "KCDUtils.Events" }
-
+KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.updaters = KCDUtils.Events.updaters or {}
 KCDUtils.Events.watchLoopRunning = KCDUtils.Events.watchLoopRunning or false
+KCDUtils.Events.initialized = KCDUtils.Events.initialized or false
+KCDUtils.Events.listeners = KCDUtils.Events.listeners or {}
+KCDUtils.Events.cachedEvents = KCDUtils.Events.cachedEvents or {}
+KCDUtils.Events.availableEvents = KCDUtils.Events.availableEvents or {}
+
+local unpack = table.unpack or unpack
+local pack = table.pack or function(...) return { n = select("#", ...), ... } end
 
 if KCDUtils.Events.initialized then
-    System.LogAlways("[KCDUtils.Events] Already initialized, skipping Events.lua")
-    return
-end
+    System.LogAlways("[KCDUtils.Events] Reload detected, re-registering updaters...")
 
-local listeners = {}
-local cachedEvents = {}
-local availableEvents = {}
-table.unpack = table.unpack or unpack
-table.pack = table.pack or function(...)
-    return { n = select("#", ...), ... }
+    -- Alte Updater entfernen
+    for _, fn in ipairs(KCDUtils.Events.updaters) do
+        KCDUtils.Events.UnregisterUpdater(fn)
+    end
+    KCDUtils.Events.updaters = {} -- leere Liste
+
+    -- WatchLoop neu starten
+    KCDUtils.Events.watchLoopRunning = false
+    KCDUtils.Events.WatchLoop()
+else
+    -- Erstinitialisierung
+    KCDUtils.Events.initialized = true
 end
 
 --------------------------------------------------
@@ -35,14 +45,33 @@ end
 function KCDUtils.Events.RegisterEvent(eventName, modName, description, paramList)
     local logger = KCDUtils.Logger.Factory(modName)
 
-    availableEvents[eventName] = availableEvents[eventName] or {}
-    table.insert(availableEvents[eventName], {
+    KCDUtils.Events.availableEvents[eventName] = KCDUtils.Events.availableEvents[eventName] or {}
+    table.insert(KCDUtils.Events.availableEvents[eventName], {
         modName = modName,
         description = description or "",
         params = paramList or {}
     })
 
     logger:Info("Event registered: '" .. eventName .. "'")
+end
+
+function KCDUtils.Events.RegisterListener(mod, eventTable, config, callback)
+    mod._listeners = mod._listeners or {}
+
+    -- Prüfen, ob schon ein Listener für diese Callback existiert
+    for i = #mod._listeners, 1, -1 do
+        local entry = mod._listeners[i]
+        if entry.callback == callback and entry.eventTable == eventTable then
+            entry.eventTable.Remove(entry.subscription)
+            table.remove(mod._listeners, i)
+        end
+    end
+
+    -- Neuen Listener hinzufügen
+    local sub = eventTable.Add(config, callback)
+    table.insert(mod._listeners, { eventTable = eventTable, subscription = sub, callback = callback })
+
+    return sub
 end
 
 -- #endregion
@@ -72,21 +101,21 @@ end
 --- @param opts (table|nil) Optional table with fields 'modName' (string) and 'once' (boolean).
 function KCDUtils.Events.Subscribe(eventName, callbackFunction, opts)
     opts = opts or {}
-    local logger = KCDUtils.Logger.Factory(opts.Name or "Unknown")
+    local logger = KCDUtils.Logger.Factory(opts.modName or "Unknown")
 
     if type(callbackFunction) ~= "function" then
         logger:Error("Callback must be a function")
     end
 
-    listeners[eventName] = listeners[eventName] or {}
+    KCDUtils.Events.listeners[eventName] = KCDUtils.Events.listeners[eventName] or {}
 
-    for _, listener in ipairs(listeners[eventName]) do
+    for _, listener in ipairs(KCDUtils.Events.listeners[eventName]) do
         if listener.callback == callbackFunction then
             return
         end
     end
 
-    table.insert(listeners[eventName], {
+    table.insert(KCDUtils.Events.listeners[eventName], {
         callback = callbackFunction,
         modName = opts.modName,
         once = opts.once or false
@@ -94,12 +123,12 @@ function KCDUtils.Events.Subscribe(eventName, callbackFunction, opts)
 
     logger:Info("Subscribed listener for event '" .. eventName .. "'.")
 
-    if cachedEvents[eventName] and #cachedEvents[eventName] > 0 then
-        logger:Info("Publish cached events for '" .. eventName .. "' (" .. tostring(#cachedEvents[eventName]) .. " cached events).")
-        for _, args in ipairs(cachedEvents[eventName]) do
-            KCDUtils.Event.Publish(eventName, table.unpack(args))
+    if KCDUtils.Events.cachedEvents[eventName] and #KCDUtils.Events.cachedEvents[eventName] > 0 then
+        logger:Info("Publish cached events for '" .. eventName .. "' (" .. tostring(#KCDUtils.Events.cachedEvents[eventName]) .. " cached events).")
+        for _, args in ipairs(KCDUtils.Events.cachedEvents[eventName]) do
+            KCDUtils.Events.Publish(eventName, table.unpack(args))
         end
-        cachedEvents[eventName] = nil
+        KCDUtils.Events.cachedEvents[eventName] = nil
     end
 end
 
@@ -140,14 +169,14 @@ end
 --- @param eventName (string) The name of the event.
 --- @param callbackFunction (function) The callback function to remove.
 function KCDUtils.Events.Unsubscribe(eventName, callbackFunction)
-    local lst = listeners[eventName]
+    local lst = KCDUtils.Events.listeners[eventName]
     if not lst then return end
     for i = #lst, 1, -1 do
         if lst[i].callback == callbackFunction then
             table.remove(lst, i)
         end
     end
-    if #lst == 0 then listeners[eventName] = nil end
+    if #lst == 0 then KCDUtils.Events.listeners[eventName] = nil end
 end
 -- #endregion
 
@@ -157,35 +186,25 @@ end
 -- #region Updater
 
 
+--- Registers an updater function that runs each tick
+---@param fn function
 function KCDUtils.Events.RegisterUpdater(fn)
-    local logger = KCDUtils.Logger.Factory("KCDUtils.Events")
-    if type(fn) ~= "function" then
-        logger:Error("Attempted to register a non-function as updater!")
-        return
-    end
-    logger:Info("Registered updater function.")
+    if type(fn) ~= "function" then return end
     table.insert(KCDUtils.Events.updaters, fn)
 end
 
+--- Unregisters an updater function
+---@param fn function
 function KCDUtils.Events.UnregisterUpdater(fn)
-    local logger = KCDUtils.Logger.Factory("KCDUtils.Events")
-    local found = false
-    
-    for i, updaterFn in ipairs(KCDUtils.Events.updaters) do
-        if updaterFn == fn then
+    for i = #KCDUtils.Events.updaters, 1, -1 do
+        if KCDUtils.Events.updaters[i] == fn then
             table.remove(KCDUtils.Events.updaters, i)
-            found = true
             break
         end
     end
-
-    if found then
-        logger:Info("Unregistered updater function.")
-    else
-        logger:Error("Attempted to unregister a function that was not found!")
-    end
 end
 
+--- Starts the watch loop (idempotent, reload-safe)
 function KCDUtils.Events.WatchLoop()
     if KCDUtils.Events.watchLoopRunning then
         return
@@ -193,6 +212,7 @@ function KCDUtils.Events.WatchLoop()
     KCDUtils.Events.watchLoopRunning = true
 
     local function loop()
+        -- Run all updaters safely
         for i, fn in ipairs(KCDUtils.Events.updaters) do
             local ok, err = pcall(fn, 1/60)
             if not ok then
@@ -201,6 +221,7 @@ function KCDUtils.Events.WatchLoop()
             end
         end
 
+        -- Schedule next tick
         Script.SetTimer(16, loop)
     end
 
@@ -262,10 +283,10 @@ end
 --- @param ... (any) Arguments to pass to the listener callback functions.
 function KCDUtils.Events.Publish(eventName, ...)
     System.LogAlways("Publish called for '" .. eventName .. "' with " .. select("#", ...) .. " args")
-    local lst = listeners[eventName]
+    local lst = KCDUtils.Events.listeners[eventName]
     if not lst or #lst == 0 then
-        cachedEvents[eventName] = cachedEvents[eventName] or {}
-        table.insert(cachedEvents[eventName], table.pack(...))
+        KCDUtils.Events.cachedEvents[eventName] = KCDUtils.Events.cachedEvents[eventName] or {}
+        table.insert(KCDUtils.Events.cachedEvents[eventName], table.pack(...))
         System.LogAlways("No listeners for event '" .. eventName .. "'. Event cached.")
         return
     end
@@ -297,7 +318,7 @@ end
 --- Lists all registered events and their descriptions/parameters.
 function KCDUtils.Events.ListEvents()
     System.LogAlways("---- Registered Events ----")
-    for eventName, mods in pairs(availableEvents) do
+    for eventName, mods in pairs(KCDUtils.Events.availableEvents) do
         System.LogAlways("Event: " .. eventName)
         for _, info in ipairs(mods) do
             System.LogAlways("  - By " .. info.modName .. ": " .. (info.description or ""))
@@ -318,7 +339,7 @@ end
 function KCDUtils.Events.ListSubscribers()
     System.LogAlways("---- Registered Listeners ----")
     local found = false
-    for eventName, lst in pairs(listeners) do
+    for eventName, lst in pairs(KCDUtils.Events.listeners) do
         if lst and #lst > 0 then
             System.LogAlways("Event: " .. eventName)
             for _, listener in ipairs(lst) do
@@ -338,7 +359,7 @@ end
 --- @param modName (string) The name of the mod whose events should be listed.
 function KCDUtils.Events.ListEventsByMod(modName)
     System.LogAlways("---- Events registered by " .. modName .. " ----")
-    for eventName, mods in pairs(availableEvents) do
+    for eventName, mods in pairs(KCDUtils.Events.availableEvents) do
         for _, info in ipairs(mods) do
             if info.modName == modName then
                 System.LogAlways("  - " .. eventName .. ": " .. (info.description or ""))

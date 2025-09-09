@@ -1,56 +1,22 @@
+-- ============================================================================ 
+-- KCDUtils.Events.StateThresholdDetected (Reload-sicher)
+-- ============================================================================
+
 KCDUtils = KCDUtils or {}
-KCDUtils.Events = KCDUtils.Events or { Name = "KCDUtils.Events" }
+KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.StateThresholdDetected = KCDUtils.Events.StateThresholdDetected or {}
 
-KCDUtils.Events.StateThresholdDetected.listeners = KCDUtils.Events.StateThresholdDetected.listeners or {}
-KCDUtils.Events.StateThresholdDetected.isUpdaterRegistered = KCDUtils.Events.StateThresholdDetected.isUpdaterRegistered or false
-KCDUtils.Events.StateThresholdDetected.updaterFn = KCDUtils.Events.StateThresholdDetected.updaterFn or nil
+local STD = KCDUtils.Events.StateThresholdDetected
 
---- Registers a listener for a soul state threshold event.
----
---- #### Examples:
---- ```lua
---- -- Fire when health drops below 30
---- KCDUtils.Events.StateThresholdDetected.Add({
----     soulState = "health",
----     threshold = 30,
----     direction = "below"
---- }, function(value)
----     System.LogAlways("Health is now below 30: " .. value)
---- end)
----
---- -- Fire when stamina rises above 75
---- KCDUtils.Events.StateThresholdDetected.Add({
----     soulState = "stamina",
----     threshold = 75,
----     direction = "above"
---- }, function(value)
----     System.LogAlways("Stamina is now above 75: " .. value)
---- end)
---- ```
----
----@param config table Configuration table:
----        Fields:
----        config.soulState string -> Name of the soul state to monitor (e.g., "health", "stamina", "hunger") (required)
----        config.threshold number -> The threshold value to compare against (required)
----        config.direction '"above"' | '"below"' -> The direction to monitor (above or below the threshold) (required)
----@param callback fun(value:number) Callback function invoked when the threshold is crossed. Passes the current value.
----@return table? subscription Returns the subscription object that can be removed via Remove()
-function KCDUtils.Events.StateThresholdDetected.Add(config, callback)
-    local logger = KCDUtils.Logger.Factory("KCDUtils.Events.StateThresholdDetected")
+STD.listeners = STD.listeners or {}
+STD.isUpdaterRegistered = STD.isUpdaterRegistered or false
+STD.updaterFn = STD.updaterFn or nil
 
-    if type(config) ~= "table" or type(callback) ~= "function" then
-        logger:Error("Add: config must be a table and callback must be a function")
-        return nil
-    end
+-- Interne Add/Remove Methoden
+local function addListener(config, callback)
+    config = config or {}
 
-    if type(config.soulState) ~= "string" or type(config.threshold) ~= "number" or 
-       (config.direction ~= "above" and config.direction ~= "below") then
-        logger:Error("Add: Invalid config values. soulState(string), threshold(number), direction('above'|'below') required")
-        return nil
-    end
-
-    local newSub = {
+    local sub = {
         soulState = config.soulState,
         threshold = config.threshold,
         direction = config.direction,
@@ -60,47 +26,45 @@ function KCDUtils.Events.StateThresholdDetected.Add(config, callback)
         lastTriggered = nil
     }
 
-    table.insert(KCDUtils.Events.StateThresholdDetected.listeners, newSub)
+    table.insert(STD.listeners, sub)
 
-    if not KCDUtils.Events.StateThresholdDetected.isUpdaterRegistered then
-        KCDUtils.Events.StateThresholdDetected:startUpdater()
-        KCDUtils.Events.StateThresholdDetected.isUpdaterRegistered = true
+    if not STD.isUpdaterRegistered then
+        STD.startUpdater()
+        STD.isUpdaterRegistered = true
     end
 
-    return newSub
+    return sub
 end
 
-function KCDUtils.Events.StateThresholdDetected.Remove(sub)
-    for i, s in ipairs(KCDUtils.Events.StateThresholdDetected.listeners) do
-        if s == sub then
-            table.remove(KCDUtils.Events.StateThresholdDetected.listeners, i)
+local function removeListener(sub)
+    for i = #STD.listeners, 1, -1 do
+        if STD.listeners[i] == sub then
+            table.remove(STD.listeners, i)
             break
         end
     end
-    if #KCDUtils.Events.StateThresholdDetected.listeners == 0 and KCDUtils.Events.StateThresholdDetected.isUpdaterRegistered then
-        KCDUtils.Events.UnregisterUpdater(KCDUtils.Events.StateThresholdDetected.updaterFn)
-        KCDUtils.Events.StateThresholdDetected.isUpdaterRegistered = false
+
+    if #STD.listeners == 0 and STD.isUpdaterRegistered then
+        KCDUtils.Events.UnregisterUpdater(STD.updaterFn)
+        STD.isUpdaterRegistered = false
     end
 end
 
-function KCDUtils.Events.StateThresholdDetected.Pause(sub)
-    if sub then sub.isPaused = true end
-end
-
-function KCDUtils.Events.StateThresholdDetected.Resume(sub)
+STD.Pause = function(sub) if sub then sub.isPaused = true end end
+STD.Resume = function(sub)
     if sub then
         sub.isPaused = false
         sub.pausedValueOffset = nil
     end
 end
 
-function KCDUtils.Events.StateThresholdDetected:startUpdater()
+function STD.startUpdater()
     local fn = function(deltaTime)
         deltaTime = deltaTime or 1.0
-        local player = KCDUtils.Entities.Player:Get()
         if not player or not player.soul then return end
 
-        for _, sub in ipairs(KCDUtils.Events.StateThresholdDetected.listeners) do
+        for i = #STD.listeners, 1, -1 do
+            local sub = STD.listeners[i]
             local value = player.soul:GetState(sub.soulState)
             if value then
                 if sub.isPaused then
@@ -125,6 +89,15 @@ function KCDUtils.Events.StateThresholdDetected:startUpdater()
         end
     end
 
-    KCDUtils.Events.StateThresholdDetected.updaterFn = fn
+    STD.updaterFn = fn
     KCDUtils.Events.RegisterUpdater(fn)
+end
+
+-- Reload-sichere Add/Remove für Modder
+function STD.Add(config, callback)
+    return addListener(config, callback)
+end
+
+function STD.Remove(sub)
+    return removeListener(sub)
 end

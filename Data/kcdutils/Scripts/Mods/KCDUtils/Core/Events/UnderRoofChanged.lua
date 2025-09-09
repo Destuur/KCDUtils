@@ -1,63 +1,21 @@
--- ============================================================================
--- KCDUtils.Events.UnderRoofChanged
--- ============================================================================
--- Event that fires when the player enters or leaves a roofed area.
--- Supports one-time or recurring subscriptions and direction-based triggers.
+-- ============================================================================ 
+-- KCDUtils.Events.UnderRoofChanged (Reload-sicher)
 -- ============================================================================
 
 KCDUtils = KCDUtils or {}
 KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.UnderRoofChanged = KCDUtils.Events.UnderRoofChanged or {}
 
-KCDUtils.Events.UnderRoofChanged.listeners = KCDUtils.Events.UnderRoofChanged.listeners or {}
-KCDUtils.Events.UnderRoofChanged.isUpdaterRegistered = KCDUtils.Events.UnderRoofChanged.isUpdaterRegistered or false
-KCDUtils.Events.UnderRoofChanged.updaterFn = KCDUtils.Events.UnderRoofChanged.updaterFn or nil
+local URC = KCDUtils.Events.UnderRoofChanged
 
---- Adds a subscription to detect entering or leaving roofed areas.
----
---- #### Examples:
---- ```lua
---- -- Fire when entering a roof
---- KCDUtils.Events.UnderRoofChanged.Add({ direction = "enter" }, function(isUnderRoof)
----     System.LogAlways("Player entered a roofed area")
---- end)
----
---- -- Fire when leaving a roof
---- KCDUtils.Events.UnderRoofChanged.Add({ direction = "leave" }, function(isUnderRoof)
----     System.LogAlways("Player left a roofed area")
---- end)
----
---- -- Fire on both entering and leaving
---- KCDUtils.Events.UnderRoofChanged.Add({ direction = "both" }, function(isUnderRoof)
----     if isUnderRoof then
----         System.LogAlways("Player entered a roof")
----     else
----         System.LogAlways("Player left a roof")
----     end
---- end)
---- ```
----
----@param config table Configuration table:
----        Fields:
----        config.direction '"enter"' | '"leave"' | '"both"' -> When to trigger the callback (default: "both")
----        config.once boolean -> Fire only once? (optional, default: false)
----@param callback fun(isUnderRoof:boolean) Callback invoked when the player enters or leaves a roofed area.
----@return table? subscription Returns the subscription object that can be removed via Remove()
-function KCDUtils.Events.UnderRoofChanged.Add(config, callback)
-    local logger = KCDUtils.Logger.Factory("KCDUtils.Events.UnderRoofChanged")
+URC.listeners = URC.listeners or {}
+URC.isUpdaterRegistered = URC.isUpdaterRegistered or false
+URC.updaterFn = URC.updaterFn or nil
 
-    if type(callback) ~= "function" then
-        logger:Error("Add: callback must be a function")
-        return nil
-    end
-
+-- Interne Add/Remove Methoden
+local function addListener(config, callback)
     config = config or {}
     local direction = config.direction or "both"
-    if direction ~= "enter" and direction ~= "leave" and direction ~= "both" then
-        logger:Error("Add: invalid direction. Must be 'enter', 'leave', or 'both'. Defaulting to 'both'")
-        direction = "both"
-    end
-
     local sub = {
         callback = callback,
         once = config.once == true,
@@ -65,79 +23,66 @@ function KCDUtils.Events.UnderRoofChanged.Add(config, callback)
         isPaused = false,
         direction = direction
     }
-
-    table.insert(KCDUtils.Events.UnderRoofChanged.listeners, sub)
-    logger:Info("New UnderRoofChanged subscription added with direction: " .. direction)
-
-    if not KCDUtils.Events.UnderRoofChanged.isUpdaterRegistered then
-        KCDUtils.Events.UnderRoofChanged:startUpdater()
-        KCDUtils.Events.UnderRoofChanged.isUpdaterRegistered = true
+    table.insert(URC.listeners, sub)
+    if not URC.isUpdaterRegistered then
+        URC.startUpdater()
+        URC.isUpdaterRegistered = true
     end
-
     return sub
 end
 
-function KCDUtils.Events.UnderRoofChanged.Remove(subscription)
-    for i = #KCDUtils.Events.UnderRoofChanged.listeners, 1, -1 do
-        if KCDUtils.Events.UnderRoofChanged.listeners[i] == subscription then
-            table.remove(KCDUtils.Events.UnderRoofChanged.listeners, i)
+local function removeListener(sub)
+    for i = #URC.listeners, 1, -1 do
+        if URC.listeners[i] == sub then
+            table.remove(URC.listeners, i)
             break
         end
     end
-
-    if #KCDUtils.Events.UnderRoofChanged.listeners == 0 and KCDUtils.Events.UnderRoofChanged.isUpdaterRegistered then
-        KCDUtils.Events.UnregisterUpdater(KCDUtils.Events.UnderRoofChanged.updaterFn)
-        KCDUtils.Events.UnderRoofChanged.isUpdaterRegistered = false
+    if #URC.listeners == 0 and URC.isUpdaterRegistered then
+        KCDUtils.Events.UnregisterUpdater(URC.updaterFn)
+        URC.isUpdaterRegistered = false
     end
 end
 
-function KCDUtils.Events.UnderRoofChanged.Pause(subscription)
-    if subscription then subscription.isPaused = true end
-end
+URC.Pause = function(sub) if sub then sub.isPaused = true end end
+URC.Resume = function(sub) if sub then sub.isPaused = false end end
 
-function KCDUtils.Events.UnderRoofChanged.Resume(subscription)
-    if subscription then subscription.isPaused = false end
-end
-
-function KCDUtils.Events.UnderRoofChanged.startUpdater()
-    local logger = KCDUtils.Logger.Factory("KCDUtils.Events.UnderRoofChanged")
-    logger:Info("UnderRoofChanged updater started.")
-
+function URC.startUpdater()
     local fn = function(deltaTime)
-        deltaTime = deltaTime or 1.0
         if not player then return end
+        local pos = player:GetWorldPos()
+        local rayStart = { x = pos.x, y = pos.y, z = pos.z + 1.8 }
+        local hits = Physics.RayWorldIntersection(rayStart, {x=0,y=0,z=3}, 1, ent_all, player.id)
+        local isUnderRoof = hits and #hits>0 and hits[1].surface
 
-        local playerPos = player:GetWorldPos()
-        local rayStart = { x = playerPos.x, y = playerPos.y, z = playerPos.z + 1.8 }
-        local rayDirection = { x = 0, y = 0, z = 3.0 }
-        local hits = Physics.RayWorldIntersection(rayStart, rayDirection, 1, ent_all, player.id)
-
-        local isUnderRoof = false
-        if hits and #hits > 0 and hits[1].surface then
-            isUnderRoof = true
-        end
-
-        for i = #KCDUtils.Events.UnderRoofChanged.listeners, 1, -1 do
-            local sub = KCDUtils.Events.UnderRoofChanged.listeners[i]
+        for i = #URC.listeners, 1, -1 do
+            local sub = URC.listeners[i]
             if not sub.isPaused then
                 if sub.lastState == nil then
                     sub.lastState = isUnderRoof
                 else
-                    local triggerEnter = (sub.direction == "enter" or sub.direction == "both") and isUnderRoof and not sub.lastState
-                    local triggerLeave = (sub.direction == "leave" or sub.direction == "both") and not isUnderRoof and sub.lastState
-
+                    local triggerEnter = (sub.direction=="enter" or sub.direction=="both") and isUnderRoof and not sub.lastState
+                    local triggerLeave = (sub.direction=="leave" or sub.direction=="both") and not isUnderRoof and sub.lastState
                     if triggerEnter or triggerLeave then
                         sub.callback(isUnderRoof)
-                        if sub.once then
-                            KCDUtils.Events.UnderRoofChanged.Remove(sub)
-                        end
+                        if sub.once then removeListener(sub) end
                     end
                     sub.lastState = isUnderRoof
                 end
             end
         end
     end
-
-    KCDUtils.Events.UnderRoofChanged.updaterFn = fn
+    URC.updaterFn = fn
     KCDUtils.Events.RegisterUpdater(fn)
+end
+
+-- ============================================================
+-- Statt AddSafe: universelle RegisterListener-Methode verwenden
+-- ============================================================
+function URC.Add(config, callback)
+    return addListener(config, callback)
+end
+
+function URC.Remove(sub)
+    return removeListener(sub)
 end

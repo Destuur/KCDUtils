@@ -1,112 +1,63 @@
+-- ============================================================================ 
+-- KCDUtils.Events.CombatStateChanged (Reload-sicher)
+-- ============================================================================
+
 KCDUtils = KCDUtils or {}
-KCDUtils.Events = KCDUtils.Events or { Name = "KCDUtils.Events" }
+KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.CombatStateChanged = KCDUtils.Events.CombatStateChanged or {}
 
-KCDUtils.Events.CombatStateChanged.listeners = KCDUtils.Events.CombatStateChanged.listeners or {}
-KCDUtils.Events.CombatStateChanged.isUpdaterRegistered = KCDUtils.Events.CombatStateChanged.isUpdaterRegistered or false
-KCDUtils.Events.CombatStateChanged.updaterFn = KCDUtils.Events.CombatStateChanged.updaterFn or nil
+local CSC = KCDUtils.Events.CombatStateChanged
 
---- ### Adds a listener for combat state changes.
---- 
---- #### Examples:
---- ```lua
---- -- Fires on combat entry
---- KCDUtils.Events.CombatStateChanged.Add({ trigger = "entry" }, function(data)
----     System.LogAlways("Player entered combat!")
---- end)
----
---- -- Fires on combat exit
---- KCDUtils.Events.CombatStateChanged.Add({ trigger = "exit" }, function(data)
----     System.LogAlways("Player left combat!")
---- end)
----
---- -- Fires on both entry and exit
---- KCDUtils.Events.CombatStateChanged.Add({ trigger = "both" }, function(data)
----     if data.inCombat then
----         System.LogAlways("Combat started")
----     else
----         System.LogAlways("Combat ended")
----     end
---- end)
---- ```
---- @param config table Configuration table:
----        config.trigger '"entry"' | '"exit"' | '"both"' (default: "both")
---- @param callback fun(data:{inCombat:boolean, player:table}) Callback invoked when the combat state changes.
-function KCDUtils.Events.CombatStateChanged.Add(config, callback)
-    local logger = KCDUtils.Logger.Factory("KCDUtils.Events.CombatStateChanged")
-    if type(config) == "function" then
-        callback = config
-        config = {}
-    end
+CSC.listeners = CSC.listeners or {}
+CSC.isUpdaterRegistered = CSC.isUpdaterRegistered or false
+CSC.updaterFn = CSC.updaterFn or nil
 
-    if type(callback) ~= "function" then
-        logger:Error("Add: callback must be a function")
-        return nil
-    end
-
+-- Interne Add/Remove Methoden
+local function addListener(config, callback)
+    config = config or {}
     local trigger = config.trigger or "both"
-    if trigger ~= "entry" and trigger ~= "exit" and trigger ~= "both" then
-        logger:Error("Add: invalid trigger, must be 'entry', 'exit' or 'both'. Defaulting to 'both'.")
-        trigger = "both"
-    end
-
-    local newSubscription = {
+    local sub = {
         callback = callback,
+        once = config.once == true,
+        lastState = nil,
         isPaused = false,
-        lastState = nil, 
-        pausedState = nil,
-        trigger = trigger
+        trigger = trigger,
+        pausedState = nil
     }
-
-    table.insert(KCDUtils.Events.CombatStateChanged.listeners, newSubscription)
-    logger:Info("New CombatStateChanged subscription added. Trigger: " .. trigger)
-
-    if not KCDUtils.Events.CombatStateChanged.isUpdaterRegistered then
-        KCDUtils.Events.CombatStateChanged:startUpdater()
-        KCDUtils.Events.CombatStateChanged.isUpdaterRegistered = true
+    table.insert(CSC.listeners, sub)
+    if not CSC.isUpdaterRegistered then
+        CSC.startUpdater()
+        CSC.isUpdaterRegistered = true
     end
-
-    return newSubscription
+    return sub
 end
 
-function KCDUtils.Events.CombatStateChanged.Remove(subscription)
-    for i, sub in ipairs(KCDUtils.Events.CombatStateChanged.listeners) do
-        if sub == subscription then
-            table.remove(KCDUtils.Events.CombatStateChanged.listeners, i)
+local function removeListener(sub)
+    for i = #CSC.listeners, 1, -1 do
+        if CSC.listeners[i] == sub then
+            table.remove(CSC.listeners, i)
             break
         end
     end
-
-    if #KCDUtils.Events.CombatStateChanged.listeners == 0 and KCDUtils.Events.CombatStateChanged.isUpdaterRegistered then
-        KCDUtils.Events.UnregisterUpdater(KCDUtils.Events.CombatStateChanged.updaterFn)
-        KCDUtils.Events.CombatStateChanged.isUpdaterRegistered = false
+    if #CSC.listeners == 0 and CSC.isUpdaterRegistered then
+        KCDUtils.Events.UnregisterUpdater(CSC.updaterFn)
+        CSC.isUpdaterRegistered = false
     end
 end
 
-function KCDUtils.Events.CombatStateChanged.Pause(subscription)
-    if subscription then
-        subscription.isPaused = true
-    end
-end
+CSC.Pause = function(sub) if sub then sub.isPaused = true end end
+CSC.Resume = function(sub) if sub then sub.isPaused = false end end
 
-function KCDUtils.Events.CombatStateChanged.Resume(subscription)
-    if subscription then
-        subscription.isPaused = false
-    end
-end
-
-function KCDUtils.Events.CombatStateChanged:startUpdater()
-    local logger = KCDUtils.Logger.Factory("KCDUtils.Events.CombatStateChanged")
-    logger:Info("CombatStateChanged updater started.")
-
+function CSC.startUpdater()
     local fn = function(deltaTime)
-        local player = KCDUtils.Entities.Player:Get()
         if not player or not player.soul then return end
 
         local inCombat = player.soul:IsInCombatDanger()
         if inCombat == nil then return end
 
-        for _, sub in ipairs(KCDUtils.Events.CombatStateChanged.listeners) do
+        for i = #CSC.listeners, 1, -1 do
+            local sub = CSC.listeners[i]
+
             if sub.isPaused then
                 sub.pausedState = inCombat
             else
@@ -127,6 +78,9 @@ function KCDUtils.Events.CombatStateChanged:startUpdater()
                             inCombat = inCombat,
                             player = player
                         })
+                        if sub.once then
+                            removeListener(sub)
+                        end
                     end
                 end
 
@@ -136,6 +90,15 @@ function KCDUtils.Events.CombatStateChanged:startUpdater()
         end
     end
 
-    KCDUtils.Events.CombatStateChanged.updaterFn = fn
+    CSC.updaterFn = fn
     KCDUtils.Events.RegisterUpdater(fn)
+end
+
+-- Reload-sichere Add/Remove Funktionen für Modder
+function CSC.Add(config, callback)
+    return addListener(config, callback)
+end
+
+function CSC.Remove(sub)
+    return removeListener(sub)
 end

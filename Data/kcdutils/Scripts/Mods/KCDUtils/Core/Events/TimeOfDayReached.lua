@@ -1,21 +1,20 @@
+-- ============================================================================ 
+-- KCDUtils.Events.TimeOfDayThresholdReached (Reload-sicher)
+-- ============================================================================
+
 KCDUtils = KCDUtils or {}
-KCDUtils.Events = KCDUtils.Events or { Name = "KCDUtils.Events" }
+KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.TimeOfDayThresholdReached = KCDUtils.Events.TimeOfDayThresholdReached or {}
 
-KCDUtils.Events.TimeOfDayThresholdReached.listeners = KCDUtils.Events.TimeOfDayThresholdReached.listeners or {}
-KCDUtils.Events.TimeOfDayThresholdReached.isUpdaterRegistered = KCDUtils.Events.TimeOfDayThresholdReached.isUpdaterRegistered or false
-KCDUtils.Events.TimeOfDayThresholdReached.updaterFn = KCDUtils.Events.TimeOfDayThresholdReached.updaterFn or nil
+local TOD = KCDUtils.Events.TimeOfDayThresholdReached
 
-function KCDUtils.Events.TimeOfDayThresholdReached.Add(config, callback)
-    local logger = KCDUtils.Logger.Factory("KCDUtils.Events.TimeOfDayThresholdReached")
-    if type(callback) ~= "function" then
-        logger:Error("Add: callback must be a function")
-        return nil
-    end
-    if type(config.targetHour) ~= "number" then
-        logger:Error("Add: targetHour must be a number")
-        return nil
-    end
+TOD.listeners = TOD.listeners or {}
+TOD.isUpdaterRegistered = TOD.isUpdaterRegistered or false
+TOD.updaterFn = TOD.updaterFn or nil
+
+-- Interne Add/Remove Methoden
+local function addListener(config, callback)
+    config = config or {}
 
     local sub = {
         callback = callback,
@@ -25,44 +24,41 @@ function KCDUtils.Events.TimeOfDayThresholdReached.Add(config, callback)
         isPaused = false
     }
 
-    table.insert(KCDUtils.Events.TimeOfDayThresholdReached.listeners, sub)
-    logger:Info("New TimeOfDayThresholdReached subscription added: " .. sub.targetHour .. "h")
+    table.insert(TOD.listeners, sub)
 
-    if not KCDUtils.Events.TimeOfDayThresholdReached.isUpdaterRegistered then
-        KCDUtils.Events.TimeOfDayThresholdReached:startUpdater()
-        KCDUtils.Events.TimeOfDayThresholdReached.isUpdaterRegistered = true
+    if not TOD.isUpdaterRegistered then
+        TOD.startUpdater()
+        TOD.isUpdaterRegistered = true
     end
 
     return sub
 end
 
-function KCDUtils.Events.TimeOfDayThresholdReached.Remove(sub)
-    for i, s in ipairs(KCDUtils.Events.TimeOfDayThresholdReached.listeners) do
-        if s == sub then
-            table.remove(KCDUtils.Events.TimeOfDayThresholdReached.listeners, i)
+local function removeListener(sub)
+    for i = #TOD.listeners, 1, -1 do
+        if TOD.listeners[i] == sub then
+            table.remove(TOD.listeners, i)
             break
         end
     end
 
-    if #KCDUtils.Events.TimeOfDayThresholdReached.listeners == 0 then
-        KCDUtils.Events.UnregisterUpdater(KCDUtils.Events.TimeOfDayThresholdReached.updaterFn)
-        KCDUtils.Events.TimeOfDayThresholdReached.isUpdaterRegistered = false
+    if #TOD.listeners == 0 and TOD.isUpdaterRegistered then
+        KCDUtils.Events.UnregisterUpdater(TOD.updaterFn)
+        TOD.isUpdaterRegistered = false
     end
 end
 
-function KCDUtils.Events.TimeOfDayThresholdReached.Pause(sub) sub.isPaused = true end
-function KCDUtils.Events.TimeOfDayThresholdReached.Resume(sub) sub.isPaused = false end
+TOD.Pause = function(sub) if sub then sub.isPaused = true end end
+TOD.Resume = function(sub) if sub then sub.isPaused = false end end
 
-function KCDUtils.Events.TimeOfDayThresholdReached:startUpdater()
+function TOD.startUpdater()
     local logger = KCDUtils.Logger.Factory("KCDUtils.Events.TimeOfDayThresholdReached")
-    logger:Info("TimeOfDayThresholdReached updater started.")
-
     local fn = function()
         local ok, hour = pcall(KCDUtils.System.GetTimeOfDayHour)
         if not ok or not hour then return end
 
-        for i = #KCDUtils.Events.TimeOfDayThresholdReached.listeners, 1, -1 do
-            local sub = KCDUtils.Events.TimeOfDayThresholdReached.listeners[i]
+        for i = #TOD.listeners, 1, -1 do
+            local sub = TOD.listeners[i]
             if not sub.isPaused and not sub.triggered then
                 if hour >= sub.targetHour then
                     local success, err = pcall(sub.callback, hour)
@@ -71,13 +67,22 @@ function KCDUtils.Events.TimeOfDayThresholdReached:startUpdater()
                     end
                     sub.triggered = true
                     if sub.once then
-                        KCDUtils.Events.TimeOfDayThresholdReached.Remove(sub)
+                        removeListener(sub)
                     end
                 end
             end
         end
     end
 
-    KCDUtils.Events.TimeOfDayThresholdReached.updaterFn = fn
+    TOD.updaterFn = fn
     KCDUtils.Events.RegisterUpdater(fn)
+end
+
+-- Reload-sichere Add/Remove für Modder
+function TOD.Add(config, callback)
+    return addListener(config, callback)
+end
+
+function TOD.Remove(sub)
+    return removeListener(sub)
 end
