@@ -25,24 +25,6 @@ local function Initialize()
     System.LogAlways(KCDUtils.Name .. ": Initialization complete.")
 end
 
--- --- Registers a mod with KCDUtils
--- ---@param mod table
--- -- ---@return KCDUtilsDB, KCDUtilsLogger
--- ---@return KCDUtilsLogger
--- function KCDUtils.RegisterMod(mod)
---     local modName = mod.Name
---     KCDUtils.RegisteredMods[modName] = true   -- 👈 jetzt wird es in der globalen Liste gespeichert
-
---     -- local db = KCDUtils.DB.Factory(modName)
---     -- local logger = KCDUtils.Logger.Factory(modName)
---     -- System.LogAlways(KCDUtils.Name .. ": Mod " .. tostring(modName) .. " registered.")
-
---     local logger = KCDUtils.Logger.Factory(modName)
---     System.LogAlways(KCDUtils.Name .. ": Mod " .. tostring(modName) .. " registered.")
-
---     return logger
--- end
-
 function KCDUtils.OnGameplayStarted()
     local logger = KCDUtils.Logger.Factory(KCDUtils.Name)
     logger:Info("OnGameplayStarted triggered")
@@ -55,38 +37,39 @@ function KCDUtils.OnGameplayStarted()
         end
     end
 
-    -- WatchLoop reload-sicher starten
+    if KCDUtils.Events.DistanceTravelled and KCDUtils.Events.DistanceTravelled.ResetListeners then
+        KCDUtils.Events.DistanceTravelled.ResetListeners()
+    end
+
     if KCDUtils.Events.watchLoopRunning then
         KCDUtils.Events.watchLoopRunning = false
     end
     KCDUtils.Events.WatchLoop()
 
-    -- Fire OnGameplayStarted Event
     KCDUtils.Events.GameplayStarted.Fire()
 end
 
--- ============================================================
--- Mod-Registration
--- ============================================================
---- Registers a mod with KCDUtils
 ---@param mod table
 ---@return KCDUtilsDB, KCDUtilsLogger
 function KCDUtils.RegisterMod(mod)
     local modName = mod.Name
-    mod._listeners = mod._listeners or {}   -- Jede Mod speichert ihre eigenen Listener
+    mod._listeners = mod._listeners or {}
 
+    -- Mod registrieren
     KCDUtils.RegisteredMods[modName] = mod
 
     local logger = KCDUtils.Logger.Factory(modName)
     local db = KCDUtils.DB.Factory(modName)
     System.LogAlways(KCDUtils.Name .. ": Mod " .. tostring(modName) .. " registered.")
 
+    -- Automatisch das Event-Namespace anlegen
+    KCDUtils.Events[modName] = KCDUtils.Events[modName] or {}
+    mod.Events = KCDUtils.Events[modName]  -- optional: direkte Referenz in der Mod
+    mod.Events.TestCustomEvent = mod.Events.TestCustomEvent
+        or KCDUtils.Events.CreateEvent("TestCustomEvent")
+
     return db, logger
 end
-
--- ============================================================================ 
--- Mod Wrapper (Reload-sicher)
--- ============================================================================
 
 function KCDUtils.RegisterModCallbacks(mod)
     mod._listeners = mod._listeners or {}

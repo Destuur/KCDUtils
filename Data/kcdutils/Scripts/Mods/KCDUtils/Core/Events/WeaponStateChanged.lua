@@ -1,4 +1,4 @@
--- ============================================================================ 
+-- ============================================================================
 -- KCDUtils.Events.WeaponStateChanged (Reload-sicher)
 -- ============================================================================
 
@@ -12,17 +12,27 @@ WSC.listeners = WSC.listeners or {}
 WSC.isUpdaterRegistered = WSC.isUpdaterRegistered or false
 WSC.updaterFn = WSC.updaterFn or nil
 
--- Interne Add/Remove Methoden
+-- =====================================================================
+-- Interne Helfer
+-- =====================================================================
+
 local function addListener(config, callback)
     config = config or {}
 
     local sub = {
         callback = callback,
-        trigger = config.trigger or "both",
+        trigger = config.trigger or "both", -- "draw" | "sheath" | "both"
         once = config.once == true,
         lastState = nil,
         isPaused = false
     }
+
+    -- Cleanup: alte Listener entfernen
+    for i = #WSC.listeners, 1, -1 do
+        if WSC.listeners[i].callback == callback then
+            table.remove(WSC.listeners, i)
+        end
+    end
 
     table.insert(WSC.listeners, sub)
 
@@ -48,8 +58,9 @@ local function removeListener(sub)
     end
 end
 
-WSC.Pause = function(sub) if sub then sub.isPaused = true end end
-WSC.Resume = function(sub) if sub then sub.isPaused = false end end
+-- =====================================================================
+-- Updater
+-- =====================================================================
 
 function WSC.startUpdater()
     local fn = function(deltaTime)
@@ -87,11 +98,36 @@ function WSC.startUpdater()
     KCDUtils.Events.RegisterUpdater(fn)
 end
 
--- Reload-sichere Add/Remove Methoden
-function WSC.Add(config, callback)
+-- =====================================================================
+-- Öffentliche API (mit IntelliSense-kompatiblen Docs!)
+-- =====================================================================
+
+--- WeaponStateChanged Event
+--- Fires when the player draws or sheaths a weapon
+---
+--- @param config table Configuration for the event:
+---               trigger = "draw" | "sheath" | "both" (default "both")
+---               once = boolean (optional, default false)
+--- @param callback fun(eventData:{isDrawn:boolean, player:table}) Function called when weapon state changes
+--- @return table subscription Subscription handle (pass to Remove, Pause, Resume)
+KCDUtils.Events.WeaponStateChanged.Add = function(config, callback)
     return addListener(config, callback)
 end
 
-function WSC.Remove(sub)
-    return removeListener(sub)
+--- Remove a previously registered subscription
+--- @param subscription table The subscription object returned from Add()
+KCDUtils.Events.WeaponStateChanged.Remove = function(subscription)
+    return removeListener(subscription)
+end
+
+--- Pause a subscription without removing it
+--- @param subscription table The subscription object returned from Add()
+KCDUtils.Events.WeaponStateChanged.Pause = function(subscription)
+    if subscription then subscription.isPaused = true end
+end
+
+--- Resume a paused subscription
+--- @param subscription table The subscription object returned from Add()
+KCDUtils.Events.WeaponStateChanged.Resume = function(subscription)
+    if subscription then subscription.isPaused = false end
 end

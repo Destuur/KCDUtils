@@ -1,18 +1,21 @@
--- ============================================================================ 
+-- ============================================================================
 -- KCDUtils.Events.RainIntensityThresholdReached (Reload-sicher)
 -- ============================================================================
 
 KCDUtils = KCDUtils or {}
 KCDUtils.Events = KCDUtils.Events or {}
-KCDUtils.Events.RainThresholdReached = KCDUtils.Events.RainThresholdReached or {}
+KCDUtils.Events.RainIntensityThresholdReached = KCDUtils.Events.RainIntensityThresholdReached or {}
 
-local RITR = KCDUtils.Events.RainThresholdReached
+local RITR = KCDUtils.Events.RainIntensityThresholdReached
 
 RITR.listeners = RITR.listeners or {}
 RITR.isUpdaterRegistered = RITR.isUpdaterRegistered or false
 RITR.updaterFn = RITR.updaterFn or nil
 
--- Interne Add/Remove Methoden
+-- =====================================================================
+-- Interne Helfer
+-- =====================================================================
+
 local function addListener(config, callback)
     config = config or {}
     local sub = {
@@ -25,7 +28,15 @@ local function addListener(config, callback)
         isPaused = false
     }
 
+    -- Cleanup: alte Listener, die identisch sind, entfernen
+    for i = #RITR.listeners, 1, -1 do
+        if RITR.listeners[i].callback == callback then
+            table.remove(RITR.listeners, i)
+        end
+    end
+
     table.insert(RITR.listeners, sub)
+
     if not RITR.isUpdaterRegistered then
         RITR.startUpdater()
         RITR.isUpdaterRegistered = true
@@ -44,15 +55,17 @@ local function removeListener(sub)
     if #RITR.listeners == 0 and RITR.isUpdaterRegistered then
         KCDUtils.Events.UnregisterUpdater(RITR.updaterFn)
         RITR.isUpdaterRegistered = false
+        -- Reset der States!
+        RITR.lastTriggeredAbove = nil
+        RITR.lastTriggeredBelow = nil
     end
 end
 
-RITR.Pause = function(sub) if sub then sub.isPaused = true end end
-RITR.Resume = function(sub) if sub then sub.isPaused = false end end
-
+-- =====================================================================
+-- Updater
+-- =====================================================================
 function RITR.startUpdater()
     local fn = function(deltaTime)
-        deltaTime = deltaTime or 1.0
         local ok, rain = pcall(EnvironmentModule.GetRainIntensity)
         if not ok or rain == nil then return end
 
@@ -66,10 +79,7 @@ function RITR.startUpdater()
                     if sub.lastTriggeredAbove == nil then
                         sub.lastTriggeredAbove = triggeredAbove
                     elseif triggeredAbove and sub.lastTriggeredAbove ~= true then
-                        sub.callback({
-                            triggered = true,
-                            intensity = rain
-                        })
+                        sub.callback({ triggered = true, intensity = rain })
                         sub.lastTriggeredAbove = true
                         if sub.once then removeListener(sub) removed = true end
                     elseif not triggeredAbove then
@@ -82,10 +92,7 @@ function RITR.startUpdater()
                     if sub.lastTriggeredBelow == nil then
                         sub.lastTriggeredBelow = triggeredBelow
                     elseif triggeredBelow and sub.lastTriggeredBelow ~= true then
-                        sub.callback({
-                            triggered = true,
-                            intensity = rain
-                        })
+                        sub.callback({ triggered = true, intensity = rain })
                         sub.lastTriggeredBelow = true
                         if sub.once then removeListener(sub) end
                     elseif not triggeredBelow then
@@ -100,11 +107,34 @@ function RITR.startUpdater()
     KCDUtils.Events.RegisterUpdater(fn)
 end
 
--- Reload-sichere Add/Remove Funktionen für Modder
-function RITR.Add(config, callback)
+-- =====================================================================
+-- Öffentliche API (mit IntelliSense-kompatiblen Docs!)
+-- =====================================================================
+
+--- RainIntensityThresholdReached Event
+--- Fires when the rain intensity crosses a threshold
+---
+--- @param config RainIntensityConfig Configuration for the event
+--- @param callback fun(eventData:{triggered:boolean, intensity:number}) Function called when event triggers
+--- @return table subscription Subscription handle (pass to Remove, Pause, Resume)
+function KCDUtils.Events.RainIntensityThresholdReached.Add(config, callback)
     return addListener(config, callback)
 end
 
-function RITR.Remove(sub)
-    return removeListener(sub)
+--- Remove a previously registered subscription
+--- @param subscription table The subscription object returned from Add()
+function KCDUtils.Events.RainIntensityThresholdReached.Remove(subscription)
+    return removeListener(subscription)
+end
+
+--- Pause a subscription without removing it
+--- @param subscription table The subscription object returned from Add()
+function KCDUtils.Events.RainIntensityThresholdReached.Pause(subscription)
+    if subscription then subscription.isPaused = true end
+end
+
+--- Resume a paused subscription
+--- @param subscription table The subscription object returned from Add()
+function KCDUtils.Events.RainIntensityThresholdReached.Resume(subscription)
+    if subscription then subscription.isPaused = false end
 end

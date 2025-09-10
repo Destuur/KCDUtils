@@ -1,4 +1,4 @@
--- ============================================================================ 
+-- ============================================================================
 -- KCDUtils.Events.StateThresholdDetected (Reload-sicher)
 -- ============================================================================
 
@@ -12,19 +12,29 @@ STD.listeners = STD.listeners or {}
 STD.isUpdaterRegistered = STD.isUpdaterRegistered or false
 STD.updaterFn = STD.updaterFn or nil
 
--- Interne Add/Remove Methoden
+-- =====================================================================
+-- Interne Helfer
+-- =====================================================================
+
 local function addListener(config, callback)
     config = config or {}
 
     local sub = {
         soulState = config.soulState,
         threshold = config.threshold,
-        direction = config.direction,
+        direction = config.direction, -- "above" | "below"
         callback = callback,
         isPaused = false,
         pausedValueOffset = nil,
         lastTriggered = nil
     }
+
+    -- Cleanup: alte Listener entfernen
+    for i = #STD.listeners, 1, -1 do
+        if STD.listeners[i].callback == callback then
+            table.remove(STD.listeners, i)
+        end
+    end
 
     table.insert(STD.listeners, sub)
 
@@ -50,13 +60,9 @@ local function removeListener(sub)
     end
 end
 
-STD.Pause = function(sub) if sub then sub.isPaused = true end end
-STD.Resume = function(sub)
-    if sub then
-        sub.isPaused = false
-        sub.pausedValueOffset = nil
-    end
-end
+-- =====================================================================
+-- Updater
+-- =====================================================================
 
 function STD.startUpdater()
     local fn = function(deltaTime)
@@ -93,11 +99,40 @@ function STD.startUpdater()
     KCDUtils.Events.RegisterUpdater(fn)
 end
 
--- Reload-sichere Add/Remove für Modder
-function STD.Add(config, callback)
+-- =====================================================================
+-- Öffentliche API (mit IntelliSense-kompatiblen Docs!)
+-- =====================================================================
+
+--- StateThresholdDetected Event
+--- Fires when a soul state crosses a threshold
+---
+--- @param config table Configuration for the event:
+---               soulState = string The soul state to track
+---               threshold = number The threshold value
+---               direction = "above" | "below" (required)
+--- @param callback fun(value:number) Function called when threshold is crossed
+--- @return table subscription Subscription handle (pass to Remove, Pause, Resume)
+KCDUtils.Events.StateThresholdDetected.Add = function(config, callback)
     return addListener(config, callback)
 end
 
-function STD.Remove(sub)
-    return removeListener(sub)
+--- Remove a previously registered subscription
+--- @param subscription table The subscription object returned from Add()
+KCDUtils.Events.StateThresholdDetected.Remove = function(subscription)
+    return removeListener(subscription)
+end
+
+--- Pause a subscription without removing it
+--- @param subscription table The subscription object returned from Add()
+KCDUtils.Events.StateThresholdDetected.Pause = function(subscription)
+    if subscription then subscription.isPaused = true end
+end
+
+--- Resume a paused subscription
+--- @param subscription table The subscription object returned from Add()
+KCDUtils.Events.StateThresholdDetected.Resume = function(subscription)
+    if subscription then
+        subscription.isPaused = false
+        subscription.pausedValueOffset = nil
+    end
 end

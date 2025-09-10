@@ -1,4 +1,4 @@
--- ============================================================================ 
+-- ============================================================================
 -- KCDUtils.Events.MountedStateChanged (Reload-sicher)
 -- ============================================================================
 
@@ -13,22 +13,35 @@ MSC.isUpdaterRegistered = MSC.isUpdaterRegistered or false
 MSC.updaterFn = MSC.updaterFn or nil
 MSC.lastState = MSC.lastState or nil
 
--- Interne Add/Remove Methoden
+-- =====================================================================
+-- Interne Helfer
+-- =====================================================================
+
 local function addListener(config, callback)
     config = config or {}
     local sub = {
         callback = callback,
         config = {
-            direction = config.direction or "both",
-            once = config.once or false,
+            direction = config.direction or "both", -- "mounted" | "dismounted" | "both"
+            once = config.once or false
         },
         isPaused = false
     }
+
+    -- Cleanup: alte Listener entfernen
+    for i = #MSC.listeners, 1, -1 do
+        if MSC.listeners[i].callback == callback then
+            table.remove(MSC.listeners, i)
+        end
+    end
+
     table.insert(MSC.listeners, sub)
+
     if not MSC.isUpdaterRegistered then
         MSC.startUpdater()
         MSC.isUpdaterRegistered = true
     end
+
     return sub
 end
 
@@ -39,6 +52,7 @@ local function removeListener(sub)
             break
         end
     end
+
     if #MSC.listeners == 0 and MSC.isUpdaterRegistered then
         KCDUtils.Events.UnregisterUpdater(MSC.updaterFn)
         MSC.isUpdaterRegistered = false
@@ -46,8 +60,9 @@ local function removeListener(sub)
     end
 end
 
-MSC.Pause = function(sub) if sub then sub.isPaused = true end end
-MSC.Resume = function(sub) if sub then sub.isPaused = false end end
+-- =====================================================================
+-- Updater
+-- =====================================================================
 
 function MSC.startUpdater()
     local fn = function(deltaTime)
@@ -55,7 +70,6 @@ function MSC.startUpdater()
 
         local current = player.human:IsMounted()
 
-        -- Initialzustand
         if MSC.lastState == nil then
             MSC.lastState = current
             return
@@ -81,7 +95,6 @@ function MSC.startUpdater()
                             wasMounted = MSC.lastState,
                             direction = dirStr
                         })
-
                         if sub.config.once then removeListener(sub) end
                     end
                 end
@@ -95,11 +108,36 @@ function MSC.startUpdater()
     KCDUtils.Events.RegisterUpdater(fn)
 end
 
--- Reload-sichere Add/Remove Funktionen für Modder
-function MSC.Add(config, callback)
+-- =====================================================================
+-- Öffentliche API (mit IntelliSense-kompatiblen Docs!)
+-- =====================================================================
+
+--- MountedStateChanged Event
+--- Fires when the player's mounted state changes
+---
+--- @param config table Configuration for the event:
+---               direction = "mounted" | "dismounted" | "both" (default "both")
+---               once = boolean (optional, default false)
+--- @param callback fun(eventData:{isMounted:boolean, wasMounted:boolean, direction:string}) Function called when event triggers
+--- @return table subscription Subscription handle (pass to Remove, Pause, Resume)
+KCDUtils.Events.MountedStateChanged.Add = function(config, callback)
     return addListener(config, callback)
 end
 
-function MSC.Remove(sub)
-    return removeListener(sub)
+--- Remove a previously registered subscription
+--- @param subscription table The subscription object returned from Add()
+KCDUtils.Events.MountedStateChanged.Remove = function(subscription)
+    return removeListener(subscription)
+end
+
+--- Pause a subscription without removing it
+--- @param subscription table The subscription object returned from Add()
+KCDUtils.Events.MountedStateChanged.Pause = function(subscription)
+    if subscription then subscription.isPaused = true end
+end
+
+--- Resume a paused subscription
+--- @param subscription table The subscription object returned from Add()
+KCDUtils.Events.MountedStateChanged.Resume = function(subscription)
+    if subscription then subscription.isPaused = false end
 end

@@ -1,5 +1,5 @@
--- ============================================================================ 
--- KCDUtils.Events.DistanceTravelled (Reload-sicher)
+-- ============================================================================
+-- KCDUtils.Events.DistanceTravelled (Reload- und Savegame-sicher)
 -- ============================================================================
 
 KCDUtils = KCDUtils or {}
@@ -12,22 +12,39 @@ DT.listeners = DT.listeners or {}
 DT.isUpdaterRegistered = DT.isUpdaterRegistered or false
 DT.updaterFn = DT.updaterFn or nil
 
--- Interne Add/Remove Methoden
+-- Flag für initialen Reset nach Savegame-Load
+DT._needsReset = true
+
+-- =====================================================================
+-- Interne Helfer
+-- =====================================================================
+
 local function addListener(config, callback)
     config = config or {}
+
+    -- Cleanup alte Listener mit identischem Callback
+    for i = #DT.listeners, 1, -1 do
+        if DT.listeners[i].callback == callback then
+            table.remove(DT.listeners, i)
+        end
+    end
+
     local sub = {
         callback = callback,
-        once = config.once == true,
-        lastTriggerDistance = 0,
-        pausedDistanceOffset = nil,
         triggerDistance = config.triggerDistance or 0,
-        isPaused = false
+        lastPos = nil,
+        accumulatedDistance = 0,
+        isPaused = false,
+        initialized = false
     }
+
     table.insert(DT.listeners, sub)
+
     if not DT.isUpdaterRegistered then
         DT.startUpdater()
         DT.isUpdaterRegistered = true
     end
+
     return sub
 end
 
@@ -44,50 +61,56 @@ local function removeListener(sub)
     end
 end
 
-DT.Pause = function(sub) if sub then sub.isPaused = true end end
-DT.Resume = function(sub)
-    if sub then
-        sub.isPaused = false
-        sub.pausedDistanceOffset = nil
+-- =====================================================================
+-- Reset-Funktion nach Savegame-Load
+-- =====================================================================
+function DT.ResetListeners()
+    for i = 1, #DT.listeners do
+        local sub = DT.listeners[i]
+        sub.lastPos = nil
+        sub.accumulatedDistance = 0
+        sub.initialized = false
     end
 end
 
+-- =====================================================================
+-- Updater
+-- =====================================================================
 function DT.startUpdater()
-    local lastPos = nil
-    local totalDistance = 0
-    local minDistanceFilter = 0.05
-
     local fn = function(deltaTime)
-        deltaTime = deltaTime or 1.0
         if not player then return end
+
+        -- automatischer Reset nach Load
+        if DT._needsReset then
+            DT.ResetListeners()
+            DT._needsReset = false
+        end
 
         local pos = KCDUtils.Math.GetPlayerPosition(player)
         if not pos then return end
 
-        local dist = 0
-        if lastPos then
-            dist = KCDUtils.Math.CalculateDistance(lastPos, pos)
-            if dist > minDistanceFilter then
-                totalDistance = totalDistance + dist
-            end
-        end
-        lastPos = pos
-
-        local speed = dist / deltaTime
-        local data = { distance = totalDistance, speed = speed, position = pos }
-
         for i = #DT.listeners, 1, -1 do
             local sub = DT.listeners[i]
             if not sub.isPaused then
-                local effectiveLast = sub.pausedDistanceOffset or sub.lastTriggerDistance
-                if data.distance - effectiveLast >= sub.triggerDistance then
-                    sub.callback(data)
-                    sub.lastTriggerDistance = data.distance
-                    sub.pausedDistanceOffset = nil
-                    if sub.once then removeListener(sub) end
+                if not sub.initialized then
+                    -- Initialisierung nach Add oder Save/Load
+                    sub.lastPos = pos
+                    sub.accumulatedDistance = 0
+                    sub.initialized = true
+                else
+                    local dist = KCDUtils.Math.CalculateDistance(sub.lastPos, pos)
+                    sub.accumulatedDistance = sub.accumulatedDistance + dist
+
+                    if sub.accumulatedDistance >= sub.triggerDistance then
+                        sub.callback({
+                            distance = sub.accumulatedDistance,
+                            position = pos
+                        })
+                        sub.accumulatedDistance = 0
+                    end
+
+                    sub.lastPos = pos
                 end
-            else
-                sub.pausedDistanceOffset = sub.lastTriggerDistance
             end
         end
     end
@@ -96,11 +119,35 @@ function DT.startUpdater()
     KCDUtils.Events.RegisterUpdater(fn)
 end
 
--- Reload-sichere Add/Remove Funktionen für Modder
-function DT.Add(config, callback)
+-- =====================================================================
+-- Öffentliche API (IntelliSense-kompatibel)
+-- =====================================================================
+
+--- DistanceTravelled Event
+--- Fires when the player has moved a certain distance
+---
+--- @param config table Configuration for the event:
+---               triggerDistance = number Minimum distance to trigger
+--- @param callback fun(eventData:{distance:number, position:table}) Function called when triggerDistance is reached
+--- @return table subscription Subscription handle (pass to Remove, Pause, Resume)
+KCDUtils.Events.DistanceTravelled.Add = function(config, callback)
     return addListener(config, callback)
 end
 
-function DT.Remove(sub)
-    return removeListener(sub)
+--- Remove a previously registered subscription
+--- @param subscription table The subscription object returned from Add()
+KCDUtils.Events.DistanceTravelled.Remove = function(subscription)
+    return removeListener(subscription)
+end
+
+--- Pause a subscription without removing it
+--- @param subscription table The subscription object returned from Add()
+KCDUtils.Events.DistanceTravelled.Pause = function(subscription)
+    if subscription then subscription.isPaused = true end
+end
+
+--- Resume a paused subscription
+--- @param subscription table The subscription object returned from Add()
+KCDUtils.Events.DistanceTravelled.Resume = function(subscription)
+    if subscription then subscription.isPaused = false end
 end

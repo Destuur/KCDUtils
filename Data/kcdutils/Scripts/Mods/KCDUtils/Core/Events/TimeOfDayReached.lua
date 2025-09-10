@@ -1,4 +1,4 @@
--- ============================================================================ 
+-- ============================================================================
 -- KCDUtils.Events.TimeOfDayThresholdReached (Reload-sicher)
 -- ============================================================================
 
@@ -12,7 +12,10 @@ TOD.listeners = TOD.listeners or {}
 TOD.isUpdaterRegistered = TOD.isUpdaterRegistered or false
 TOD.updaterFn = TOD.updaterFn or nil
 
--- Interne Add/Remove Methoden
+-- =====================================================================
+-- Interne Helfer
+-- =====================================================================
+
 local function addListener(config, callback)
     config = config or {}
 
@@ -23,6 +26,13 @@ local function addListener(config, callback)
         triggered = false,
         isPaused = false
     }
+
+    -- Cleanup: alte Listener entfernen
+    for i = #TOD.listeners, 1, -1 do
+        if TOD.listeners[i].callback == callback then
+            table.remove(TOD.listeners, i)
+        end
+    end
 
     table.insert(TOD.listeners, sub)
 
@@ -48,8 +58,9 @@ local function removeListener(sub)
     end
 end
 
-TOD.Pause = function(sub) if sub then sub.isPaused = true end end
-TOD.Resume = function(sub) if sub then sub.isPaused = false end end
+-- =====================================================================
+-- Updater
+-- =====================================================================
 
 function TOD.startUpdater()
     local logger = KCDUtils.Logger.Factory("KCDUtils.Events.TimeOfDayThresholdReached")
@@ -78,11 +89,36 @@ function TOD.startUpdater()
     KCDUtils.Events.RegisterUpdater(fn)
 end
 
--- Reload-sichere Add/Remove für Modder
-function TOD.Add(config, callback)
+-- =====================================================================
+-- Öffentliche API (mit IntelliSense-kompatiblen Docs!)
+-- =====================================================================
+
+--- TimeOfDayThresholdReached Event
+--- Fires when the in-game time reaches or exceeds a target hour
+---
+--- @param config table Configuration for the event:
+---               targetHour = number Hour of the day to trigger
+---               once = boolean (optional, default false)
+--- @param callback fun(hour:number) Function called when target hour is reached
+--- @return table subscription Subscription handle (pass to Remove, Pause, Resume)
+KCDUtils.Events.TimeOfDayThresholdReached.Add = function(config, callback)
     return addListener(config, callback)
 end
 
-function TOD.Remove(sub)
-    return removeListener(sub)
+--- Remove a previously registered subscription
+--- @param subscription table The subscription object returned from Add()
+KCDUtils.Events.TimeOfDayThresholdReached.Remove = function(subscription)
+    return removeListener(subscription)
+end
+
+--- Pause a subscription without removing it
+--- @param subscription table The subscription object returned from Add()
+KCDUtils.Events.TimeOfDayThresholdReached.Pause = function(subscription)
+    if subscription then subscription.isPaused = true end
+end
+
+--- Resume a paused subscription
+--- @param subscription table The subscription object returned from Add()
+KCDUtils.Events.TimeOfDayThresholdReached.Resume = function(subscription)
+    if subscription then subscription.isPaused = false end
 end
