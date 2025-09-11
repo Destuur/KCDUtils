@@ -1,7 +1,3 @@
--- ============================================================================
--- KCDUtils.Events.SkillLevelReached (Reload-sicher)
--- ============================================================================
-
 KCDUtils = KCDUtils or {}
 KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.SkillLevelReached = KCDUtils.Events.SkillLevelReached or {}
@@ -12,14 +8,9 @@ SLU.listeners = SLU.listeners or {}
 SLU.isUpdaterRegistered = SLU.isUpdaterRegistered or false
 SLU.updaterFn = SLU.updaterFn or nil
 
--- =====================================================================
--- Interne Helfer
--- =====================================================================
-
 local function addListener(config, callback)
     assert(config.skillName, "SkillLevelReached requires a skillName in config")
 
-    -- Cleanup alte Listener mit identischem Callback
     for i = #SLU.listeners, 1, -1 do
         if SLU.listeners[i].callback == callback then
             table.remove(SLU.listeners, i)
@@ -58,10 +49,6 @@ local function removeListener(sub)
     end
 end
 
--- =====================================================================
--- Updater
--- =====================================================================
-
 function SLU.startUpdater()
     local fn = function()
         if not player or not player.soul then return end
@@ -97,10 +84,6 @@ function SLU.startUpdater()
     SLU.updaterFn = fn
     KCDUtils.Events.RegisterUpdater(fn)
 end
-
--- =====================================================================
--- Öffentliche API (IntelliSense-kompatibel)
--- =====================================================================
 
 --- SkillLevelReached Event
 --- Fires when the player's skill level increases

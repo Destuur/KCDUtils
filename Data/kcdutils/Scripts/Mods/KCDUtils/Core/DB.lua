@@ -23,10 +23,6 @@ function KCDUtils.DB.Factory(modName)
         DB = db
     }
 
-    -- -------------------------------------------------------------------
-    -- Local versions
-    -- -------------------------------------------------------------------
-
     --- ### Retrieves a value by key
     --- Retrieves a value stored in the mod DB. Can optionally log the access.
     --- 
@@ -48,7 +44,7 @@ function KCDUtils.DB.Factory(modName)
     end
 
     --- Sets a value by key.
-    --- @param key string
+    --- @param key string Test
     --- @param value any
     --- @param log? boolean
     function instance:Set(key, value, log)
@@ -89,9 +85,6 @@ function KCDUtils.DB.Factory(modName)
         return all
     end
 
-    ----------------------------------------------------------------------
-    -- Global versions
-    ----------------------------------------------------------------------
     function instance:GetG(key, log)
         local value = self.DB:GetG(key)
         if log then

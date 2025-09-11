@@ -1,6 +1,3 @@
--- ============================================================================
--- KCDUtils.Events.NearbyEntitiesDetected (Reload-sicher)
--- ============================================================================
 KCDUtils = KCDUtils or {}
 KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.NearbyEntitiesDetected = KCDUtils.Events.NearbyEntitiesDetected or {}
@@ -11,14 +8,9 @@ NED.listeners = NED.listeners or {}
 NED.isUpdaterRegistered = NED.isUpdaterRegistered or false
 NED.updaterFn = NED.updaterFn or nil
 
--- ============================================================================
--- Interne Helfer
--- ============================================================================
-
 local function addListener(config, callback)
     config = config or {}
 
-    -- Cleanup alte Listener mit identischem Callback
     for i = #NED.listeners, 1, -1 do
         if NED.listeners[i].callback == callback then
             table.remove(NED.listeners, i)
@@ -28,7 +20,7 @@ local function addListener(config, callback)
     local sub = {
         callback = callback,
         radius = config.radius or 10.0,
-        entityClass = config.entityClass or nil, -- nil = alle Entities
+        entityClass = config.entityClass or nil,
         isPaused = false
     }
 
@@ -55,10 +47,6 @@ local function removeListener(sub)
     end
 end
 
--- ============================================================================
--- Updater
--- ============================================================================
-
 function NED.startUpdater()
     local fn = function()
         if not player then return end
@@ -78,7 +66,6 @@ function NED.startUpdater()
 
                 entities = (ok and entities) or {}
 
-                -- Callback immer mit data-Table aufrufen
                 local data = {
                     entities = entities,
                     position = pos,
@@ -99,10 +86,6 @@ function NED.startUpdater()
     NED.updaterFn = fn
     KCDUtils.Events.RegisterUpdater(fn)
 end
-
--- ============================================================================
--- Öffentliche API (IntelliSense-kompatibel)
--- ============================================================================
 
 --- NearbyEntitiesDetected Event
 --- Fires when entities are detected within a radius around the player

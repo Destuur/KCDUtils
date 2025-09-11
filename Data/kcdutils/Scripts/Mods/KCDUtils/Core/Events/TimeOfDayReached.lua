@@ -1,7 +1,3 @@
--- ============================================================================
--- KCDUtils.Events.TimeOfDayThresholdReached (Reload-sicher)
--- ============================================================================
-
 KCDUtils = KCDUtils or {}
 KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.TimeOfDayThresholdReached = KCDUtils.Events.TimeOfDayThresholdReached or {}
@@ -11,10 +7,6 @@ local TOD = KCDUtils.Events.TimeOfDayThresholdReached
 TOD.listeners = TOD.listeners or {}
 TOD.isUpdaterRegistered = TOD.isUpdaterRegistered or false
 TOD.updaterFn = TOD.updaterFn or nil
-
--- =====================================================================
--- Interne Helfer
--- =====================================================================
 
 local function addListener(config, callback)
     config = config or {}
@@ -27,7 +19,6 @@ local function addListener(config, callback)
         isPaused = false
     }
 
-    -- Cleanup: alte Listener entfernen
     for i = #TOD.listeners, 1, -1 do
         if TOD.listeners[i].callback == callback then
             table.remove(TOD.listeners, i)
@@ -58,10 +49,6 @@ local function removeListener(sub)
     end
 end
 
--- =====================================================================
--- Updater
--- =====================================================================
-
 function TOD.startUpdater()
     local logger = KCDUtils.Logger.Factory("KCDUtils.Events.TimeOfDayThresholdReached")
     local fn = function()
@@ -88,10 +75,6 @@ function TOD.startUpdater()
     TOD.updaterFn = fn
     KCDUtils.Events.RegisterUpdater(fn)
 end
-
--- =====================================================================
--- Öffentliche API (mit IntelliSense-kompatiblen Docs!)
--- =====================================================================
 
 --- TimeOfDayThresholdReached Event
 --- Fires when the in-game time reaches or exceeds a target hour

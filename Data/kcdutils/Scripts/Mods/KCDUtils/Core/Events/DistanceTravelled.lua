@@ -1,7 +1,3 @@
--- ============================================================================
--- KCDUtils.Events.DistanceTravelled (Reload- und Savegame-sicher)
--- ============================================================================
-
 KCDUtils = KCDUtils or {}
 KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.DistanceTravelled = KCDUtils.Events.DistanceTravelled or {}
@@ -12,17 +8,11 @@ DT.listeners = DT.listeners or {}
 DT.isUpdaterRegistered = DT.isUpdaterRegistered or false
 DT.updaterFn = DT.updaterFn or nil
 
--- Flag für initialen Reset nach Savegame-Load
 DT._needsReset = true
-
--- =====================================================================
--- Interne Helfer
--- =====================================================================
 
 local function addListener(config, callback)
     config = config or {}
 
-    -- Cleanup alte Listener mit identischem Callback
     for i = #DT.listeners, 1, -1 do
         if DT.listeners[i].callback == callback then
             table.remove(DT.listeners, i)
@@ -61,9 +51,6 @@ local function removeListener(sub)
     end
 end
 
--- =====================================================================
--- Reset-Funktion nach Savegame-Load
--- =====================================================================
 function DT.ResetListeners()
     for i = 1, #DT.listeners do
         local sub = DT.listeners[i]
@@ -73,14 +60,10 @@ function DT.ResetListeners()
     end
 end
 
--- =====================================================================
--- Updater
--- =====================================================================
 function DT.startUpdater()
     local fn = function(deltaTime)
         if not player then return end
 
-        -- automatischer Reset nach Load
         if DT._needsReset then
             DT.ResetListeners()
             DT._needsReset = false
@@ -93,7 +76,6 @@ function DT.startUpdater()
             local sub = DT.listeners[i]
             if not sub.isPaused then
                 if not sub.initialized then
-                    -- Initialisierung nach Add oder Save/Load
                     sub.lastPos = pos
                     sub.accumulatedDistance = 0
                     sub.initialized = true
@@ -118,10 +100,6 @@ function DT.startUpdater()
     DT.updaterFn = fn
     KCDUtils.Events.RegisterUpdater(fn)
 end
-
--- =====================================================================
--- Öffentliche API (IntelliSense-kompatibel)
--- =====================================================================
 
 --- DistanceTravelled Event
 --- Fires when the player has moved a certain distance

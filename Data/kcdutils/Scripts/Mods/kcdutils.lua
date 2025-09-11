@@ -15,17 +15,11 @@ KCDUtils = KCDUtils or {}
 KCDUtils.Name = KCDUtils.Name or "KCDUtils"
 KCDUtils.RegisteredMods = KCDUtils.RegisteredMods or {} 
 
--- ============================================================================ 
--- WeakMaps für Logger, DBs und Event-Handler
--- ============================================================================
 local loggers = setmetatable({}, { __mode = "k" })
 local dbs     = setmetatable({}, { __mode = "k" })
-local on_hooks    = setmetatable({}, { __mode = "k" }) -- pro Mod gespeicherte Hooks
-local on_handlers = setmetatable({}, { __mode = "k" }) -- Proxy-Handler
+local on_hooks    = setmetatable({}, { __mode = "k" })
+local on_handlers = setmetatable({}, { __mode = "k" })
 
--- ============================================================================ 
--- Subscription Wrapper für Pause / Resume / Remove
--- ============================================================================
 local function wrapSubscription(eventTable, subscription)
     if not subscription then return nil end
     return setmetatable({
@@ -49,9 +43,6 @@ local function wrapSubscription(eventTable, subscription)
     })
 end
 
--- ============================================================================ 
--- On-Handler Metatable
--- ============================================================================
 local meta_on_handler = {}
 
 function meta_on_handler.__index(mod, key)
@@ -85,29 +76,23 @@ function meta_on_handler.__newindex(mod, key, val)
     on_hooks[mod] = on_hooks[mod] or {}
     local current = on_hooks[mod][key]
 
-    -- Entfernen
     if val == nil and current then
         eventTable.Remove(current.subscription)
         on_hooks[mod][key] = nil
         return
     end
 
-    -- Überschreiben
     if current then
         eventTable.Remove(current.subscription)
         on_hooks[mod][key] = nil
     end
 
-    -- Hinzufügen
     if type(val) == "function" then
         local subscription = eventTable.Add({}, val)
         on_hooks[mod][key] = { subscription = subscription, callback = val }
     end
 end
 
--- ============================================================================ 
--- Setup On-Handler Proxy
--- ============================================================================
 local function setupOnHandler(mod)
     if on_handlers[mod] then return on_handlers[mod] end
     on_hooks[mod] = on_hooks[mod] or {}
@@ -121,22 +106,17 @@ function KCDUtils.RegisterMod(nameOrTable)
     local mod = type(nameOrTable) == "table" and nameOrTable or { Name = nameOrTable }
     local modName = mod.Name or "UnnamedMod"
 
-    -- Mod registrieren
     KCDUtils.RegisteredMods[modName] = mod
     System.LogAlways(KCDUtils.Name .. ": Mod " .. modName .. " registered.")
 
-    -- Logger & DB einmalig erstellen (WeakRefs)
     loggers[mod] = KCDUtils.Logger.Factory(modName)
     dbs[mod]     = KCDUtils.DB.Factory(modName)
 
-    -- Events Namespace
     KCDUtils.Events[modName] = KCDUtils.Events[modName] or {}
     mod.Events = KCDUtils.Events[modName]
 
-    -- _listeners initialisieren
     mod._listeners = mod._listeners or {}
 
-    -- Metatable für syntactic sugar
     setmetatable(mod, {
         __index = function(tbl, key)
             if key == "Logger" then return loggers[tbl] end
@@ -152,21 +132,16 @@ function KCDUtils.RegisterMod(nameOrTable)
     return mod
 end
 
--- ============================================================================ 
--- OnGameplayStarted
--- ============================================================================
 function KCDUtils.OnGameplayStarted()
     local logger = KCDUtils.Logger.Factory(KCDUtils.Name)
     logger:Info("OnGameplayStarted triggered")
 
     for modName, modTable in pairs(KCDUtils.RegisteredMods) do
-        -- Mod Init
         if type(modTable.Init) == "function" then
             logger:Info("Re-initializing mod: " .. modName)
             modTable.Init()
         end
 
-        -- Alte Listener entfernen
         if modTable._listeners then
             for _, subEntry in pairs(modTable._listeners) do
                 if subEntry.subscription and subEntry.eventTable and subEntry.eventTable.Remove then
@@ -176,13 +151,11 @@ function KCDUtils.OnGameplayStarted()
         end
         modTable._listeners = {}
 
-        -- OnGameplayStarted Hooks
         if type(modTable.OnGameplayStarted) == "function" then
             logger:Info("Calling OnGameplayStarted for mod: " .. modName)
             modTable.OnGameplayStarted()
         end
 
-        -- On-Handler neu binden
         local hooks = on_hooks[modTable]
         if hooks then
             for eventName, hookData in pairs(hooks) do
@@ -195,24 +168,18 @@ function KCDUtils.OnGameplayStarted()
         end
     end
 
-    -- Events resetten
     if KCDUtils.Events.DistanceTravelled and KCDUtils.Events.DistanceTravelled.ResetListeners then
         KCDUtils.Events.DistanceTravelled.ResetListeners()
     end
 
-    -- WatchLoop resetten
     if KCDUtils.Events.watchLoopRunning then
         KCDUtils.Events.watchLoopRunning = false
     end
     KCDUtils.Events.WatchLoop()
 
-    -- Globales GameplayStarted Event feuern
     KCDUtils.Events.GameplayStarted.Fire()
 end
 
--- ============================================================================ 
--- Initialize
--- ============================================================================
 local function Initialize()
     if not KCDUtils.initiated then
         KCDUtils.initiated = true

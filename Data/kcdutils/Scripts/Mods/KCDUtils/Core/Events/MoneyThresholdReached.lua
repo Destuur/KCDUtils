@@ -1,7 +1,3 @@
--- ============================================================================
--- KCDUtils.Events.MoneyThresholdReached (Reload-sicher)
--- ============================================================================
-
 KCDUtils = KCDUtils or {}
 KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.MoneyThresholdReached = KCDUtils.Events.MoneyThresholdReached or {}
@@ -12,14 +8,9 @@ MTR.listeners = MTR.listeners or {}
 MTR.isUpdaterRegistered = MTR.isUpdaterRegistered or false
 MTR.updaterFn = MTR.updaterFn or nil
 
--- =====================================================================
--- Interne Helfer
--- =====================================================================
-
 local function addListener(config, callback)
     assert(config.targetAmount, "MoneyThresholdReached requires targetAmount in config")
 
-    -- Cleanup alte Listener mit identischem Callback
     for i = #MTR.listeners, 1, -1 do
         if MTR.listeners[i].callback == callback then
             table.remove(MTR.listeners, i)
@@ -57,10 +48,6 @@ local function removeListener(sub)
     end
 end
 
--- =====================================================================
--- Updater
--- =====================================================================
-
 function MTR.startUpdater()
     local fn = function()
         if not player or not player.inventory then return end
@@ -95,10 +82,6 @@ function MTR.startUpdater()
     MTR.updaterFn = fn
     KCDUtils.Events.RegisterUpdater(fn)
 end
-
--- =====================================================================
--- Öffentliche API (IntelliSense-kompatibel)
--- =====================================================================
 
 --- MoneyThresholdReached Event
 --- Fires when the player's money reaches or exceeds a target amount

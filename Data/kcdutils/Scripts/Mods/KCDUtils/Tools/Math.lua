@@ -2,9 +2,7 @@
 KCDUtils.Math = KCDUtils.Math or {}
 KCDUtils.Math.logger = KCDUtils.Logger.Factory("KCDUtilsMath")
 
---------------------------------------------------
--- Vector Utilities
---------------------------------------------------
+--- Convert various vector formats to a table with x,y,z
 ---@param v any
 ---@return table|nil {x=...,y=...,z=...}
 function KCDUtils.Math.ToVec3(v)
@@ -23,16 +21,12 @@ function KCDUtils.Math.ToVec3(v)
 
     x = tonumber(x); y = tonumber(y); z = tonumber(z)
     if x and y then
-        return { x = x, y = y, z = z or 0 } -- z default 0 falls nicht vorhanden
+        return { x = x, y = y, z = z or 0 }
     end
 
     KCDUtils.Math.logger:Error("ToVec3: Failed to convert vector: " .. tostring(v))
     return nil
 end
-
---------------------------------------------------
--- Distance / Speed
---------------------------------------------------
 
 --- Calculates 2D or 3D distance (falls z!=0)
 ---@param pos1 table|userdata
@@ -84,9 +78,7 @@ function KCDUtils.Math.GetPlayerSpeed(player, deltaTime, movedDistance)
     return speed
 end
 
---------------------------------------------------
--- Utility: Player Position
---------------------------------------------------
+--- Retrieves player position as table {x=...,y=...,z=...}
 ---@param player any
 ---@return table|nil
 function KCDUtils.Math.GetPlayerPosition(player)

@@ -1,7 +1,3 @@
--- ============================================================================
--- KCDUtils.Events.WorldDayOfWeekReached (Reload-sicher)
--- ============================================================================
-
 KCDUtils = KCDUtils or {}
 KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.WorldDayOfWeekReached = KCDUtils.Events.WorldDayOfWeekReached or {}
@@ -12,14 +8,9 @@ WD.listeners = WD.listeners or {}
 WD.isUpdaterRegistered = WD.isUpdaterRegistered or false
 WD.updaterFn = WD.updaterFn or nil
 
--- =====================================================================
--- Interne Helfer
--- =====================================================================
-
 local function addListener(config, callback)
     config = config or {}
 
-    -- Cleanup alte Listener mit identischem Callback
     for i = #WD.listeners, 1, -1 do
         if WD.listeners[i].callback == callback then
             table.remove(WD.listeners, i)
@@ -57,10 +48,6 @@ local function removeListener(sub)
     end
 end
 
--- =====================================================================
--- Updater
--- =====================================================================
-
 function WD.startUpdater()
     local fn = function()
         local ok, day = pcall(Calendar.GetWorldDayOfWeek)
@@ -88,10 +75,6 @@ function WD.startUpdater()
     WD.updaterFn = fn
     KCDUtils.Events.RegisterUpdater(fn)
 end
-
--- =====================================================================
--- Öffentliche API (IntelliSense-kompatibel)
--- =====================================================================
 
 --- WorldDayOfWeekReached Event
 --- Fires when the in-game day of the week is reached

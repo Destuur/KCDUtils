@@ -1,7 +1,3 @@
--- ============================================================================
--- KCDUtils.Events.UnderRoofChanged (Reload-sicher)
--- ============================================================================
-
 KCDUtils = KCDUtils or {}
 KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.UnderRoofChanged = KCDUtils.Events.UnderRoofChanged or {}
@@ -11,10 +7,6 @@ local URC = KCDUtils.Events.UnderRoofChanged
 URC.listeners = URC.listeners or {}
 URC.isUpdaterRegistered = URC.isUpdaterRegistered or false
 URC.updaterFn = URC.updaterFn or nil
-
--- =====================================================================
--- Interne Helfer
--- =====================================================================
 
 local function addListener(config, callback)
     config = config or {}
@@ -27,7 +19,6 @@ local function addListener(config, callback)
         direction = direction
     }
 
-    -- Cleanup: alte Listener, die identisch sind, entfernen
     for i = #URC.listeners, 1, -1 do
         if URC.listeners[i].callback == callback then
             table.remove(URC.listeners, i)
@@ -58,10 +49,6 @@ local function removeListener(sub)
     end
 end
 
--- =====================================================================
--- Updater
--- =====================================================================
-
 function URC.startUpdater()
     local fn = function(deltaTime)
         if not player then return end
@@ -91,10 +78,6 @@ function URC.startUpdater()
     URC.updaterFn = fn
     KCDUtils.Events.RegisterUpdater(fn)
 end
-
--- =====================================================================
--- Öffentliche API (mit IntelliSense-kompatiblen Docs!)
--- =====================================================================
 
 --- UnderRoofChanged Event
 --- Fires when the player goes under or leaves a roof

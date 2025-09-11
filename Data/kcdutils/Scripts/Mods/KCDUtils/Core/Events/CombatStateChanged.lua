@@ -1,7 +1,3 @@
--- ============================================================================
--- KCDUtils.Events.CombatStateChanged (Reload-sicher)
--- ============================================================================
-
 KCDUtils = KCDUtils or {}
 KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.CombatStateChanged = KCDUtils.Events.CombatStateChanged or {}
@@ -11,10 +7,6 @@ local CSC = KCDUtils.Events.CombatStateChanged
 CSC.listeners = CSC.listeners or {}
 CSC.isUpdaterRegistered = CSC.isUpdaterRegistered or false
 CSC.updaterFn = CSC.updaterFn or nil
-
--- =====================================================================
--- Interne Helfer
--- =====================================================================
 
 local function addListener(config, callback)
     config = config or {}
@@ -28,7 +20,6 @@ local function addListener(config, callback)
         pausedState = nil
     }
 
-    -- Cleanup: alte Listener entfernen
     for i = #CSC.listeners, 1, -1 do
         if CSC.listeners[i].callback == callback then
             table.remove(CSC.listeners, i)
@@ -58,10 +49,6 @@ local function removeListener(sub)
         CSC.isUpdaterRegistered = false
     end
 end
-
--- =====================================================================
--- Updater
--- =====================================================================
 
 function CSC.startUpdater()
     local fn = function(deltaTime)
@@ -109,10 +96,6 @@ function CSC.startUpdater()
     KCDUtils.Events.RegisterUpdater(fn)
 end
 
--- =====================================================================
--- Öffentliche API (mit IntelliSense-kompatiblen Docs!)
--- =====================================================================
-
 --- CombatStateChanged Event
 --- Fires when the player's combat state changes
 ---
@@ -121,24 +104,24 @@ end
 ---               once = boolean (optional, default false)
 --- @param callback fun(eventData:{inCombat:boolean, player:table}) Function called when event triggers
 --- @return table subscription Subscription handle (pass to Remove, Pause, Resume)
-KCDUtils.Events.CombatStateChanged.Add = function(config, callback)
+function KCDUtils.Events.CombatStateChanged.Add(config, callback)
     return addListener(config, callback)
 end
 
 --- Remove a previously registered subscription
 --- @param subscription table The subscription object returned from Add()
-KCDUtils.Events.CombatStateChanged.Remove = function(subscription)
+function KCDUtils.Events.CombatStateChanged.Remove(subscription)
     return removeListener(subscription)
 end
 
 --- Pause a subscription without removing it
 --- @param subscription table The subscription object returned from Add()
-KCDUtils.Events.CombatStateChanged.Pause = function(subscription)
+function KCDUtils.Events.CombatStateChanged.Pause(subscription)
     if subscription then subscription.isPaused = true end
 end
 
 --- Resume a paused subscription
 --- @param subscription table The subscription object returned from Add()
-KCDUtils.Events.CombatStateChanged.Resume = function(subscription)
+function KCDUtils.Events.CombatStateChanged.Resume(subscription)
     if subscription then subscription.isPaused = false end
 end

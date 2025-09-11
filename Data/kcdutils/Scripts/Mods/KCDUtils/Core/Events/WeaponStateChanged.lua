@@ -1,7 +1,3 @@
--- ============================================================================
--- KCDUtils.Events.WeaponStateChanged (Reload-sicher)
--- ============================================================================
-
 KCDUtils = KCDUtils or {}
 KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.WeaponStateChanged = KCDUtils.Events.WeaponStateChanged or {}
@@ -11,10 +7,6 @@ local WSC = KCDUtils.Events.WeaponStateChanged
 WSC.listeners = WSC.listeners or {}
 WSC.isUpdaterRegistered = WSC.isUpdaterRegistered or false
 WSC.updaterFn = WSC.updaterFn or nil
-
--- =====================================================================
--- Interne Helfer
--- =====================================================================
 
 local function addListener(config, callback)
     config = config or {}
@@ -27,7 +19,6 @@ local function addListener(config, callback)
         isPaused = false
     }
 
-    -- Cleanup: alte Listener entfernen
     for i = #WSC.listeners, 1, -1 do
         if WSC.listeners[i].callback == callback then
             table.remove(WSC.listeners, i)
@@ -57,10 +48,6 @@ local function removeListener(sub)
         WSC.isUpdaterRegistered = false
     end
 end
-
--- =====================================================================
--- Updater
--- =====================================================================
 
 function WSC.startUpdater()
     local fn = function(deltaTime)
@@ -97,10 +84,6 @@ function WSC.startUpdater()
     WSC.updaterFn = fn
     KCDUtils.Events.RegisterUpdater(fn)
 end
-
--- =====================================================================
--- Öffentliche API (mit IntelliSense-kompatiblen Docs!)
--- =====================================================================
 
 --- WeaponStateChanged Event
 --- Fires when the player draws or sheaths a weapon

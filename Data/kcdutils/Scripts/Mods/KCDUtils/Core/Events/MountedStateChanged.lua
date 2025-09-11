@@ -1,7 +1,3 @@
--- ============================================================================
--- KCDUtils.Events.MountedStateChanged (Reload-sicher)
--- ============================================================================
-
 KCDUtils = KCDUtils or {}
 KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.MountedStateChanged = KCDUtils.Events.MountedStateChanged or {}
@@ -12,10 +8,6 @@ MSC.listeners = MSC.listeners or {}
 MSC.isUpdaterRegistered = MSC.isUpdaterRegistered or false
 MSC.updaterFn = MSC.updaterFn or nil
 MSC.lastState = MSC.lastState or nil
-
--- =====================================================================
--- Interne Helfer
--- =====================================================================
 
 local function addListener(config, callback)
     config = config or {}
@@ -28,7 +20,6 @@ local function addListener(config, callback)
         isPaused = false
     }
 
-    -- Cleanup: alte Listener entfernen
     for i = #MSC.listeners, 1, -1 do
         if MSC.listeners[i].callback == callback then
             table.remove(MSC.listeners, i)
@@ -59,10 +50,6 @@ local function removeListener(sub)
         MSC.lastState = nil
     end
 end
-
--- =====================================================================
--- Updater
--- =====================================================================
 
 function MSC.startUpdater()
     local fn = function(deltaTime)
@@ -107,10 +94,6 @@ function MSC.startUpdater()
     MSC.updaterFn = fn
     KCDUtils.Events.RegisterUpdater(fn)
 end
-
--- =====================================================================
--- Öffentliche API (mit IntelliSense-kompatiblen Docs!)
--- =====================================================================
 
 --- MountedStateChanged Event
 --- Fires when the player's mounted state changes

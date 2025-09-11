@@ -1,7 +1,3 @@
--- ============================================================================
--- KCDUtils.Events.StateThresholdDetected (Reload-sicher)
--- ============================================================================
-
 KCDUtils = KCDUtils or {}
 KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.StateThresholdDetected = KCDUtils.Events.StateThresholdDetected or {}
@@ -11,10 +7,6 @@ local STD = KCDUtils.Events.StateThresholdDetected
 STD.listeners = STD.listeners or {}
 STD.isUpdaterRegistered = STD.isUpdaterRegistered or false
 STD.updaterFn = STD.updaterFn or nil
-
--- =====================================================================
--- Interne Helfer
--- =====================================================================
 
 local function addListener(config, callback)
     config = config or {}
@@ -29,7 +21,6 @@ local function addListener(config, callback)
         lastTriggered = nil
     }
 
-    -- Cleanup: alte Listener entfernen
     for i = #STD.listeners, 1, -1 do
         if STD.listeners[i].callback == callback then
             table.remove(STD.listeners, i)
@@ -59,10 +50,6 @@ local function removeListener(sub)
         STD.isUpdaterRegistered = false
     end
 end
-
--- =====================================================================
--- Updater
--- =====================================================================
 
 function STD.startUpdater()
     local fn = function(deltaTime)
@@ -98,10 +85,6 @@ function STD.startUpdater()
     STD.updaterFn = fn
     KCDUtils.Events.RegisterUpdater(fn)
 end
-
--- =====================================================================
--- Öffentliche API (mit IntelliSense-kompatiblen Docs!)
--- =====================================================================
 
 --- StateThresholdDetected Event
 --- Fires when a soul state crosses a threshold

@@ -1,7 +1,3 @@
--- ============================================================================
--- KCDUtils.Events.RainIntensityThresholdReached (Reload-sicher)
--- ============================================================================
-
 KCDUtils = KCDUtils or {}
 KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.RainIntensityThresholdReached = KCDUtils.Events.RainIntensityThresholdReached or {}
@@ -11,10 +7,6 @@ local RITR = KCDUtils.Events.RainIntensityThresholdReached
 RITR.listeners = RITR.listeners or {}
 RITR.isUpdaterRegistered = RITR.isUpdaterRegistered or false
 RITR.updaterFn = RITR.updaterFn or nil
-
--- =====================================================================
--- Interne Helfer
--- =====================================================================
 
 local function addListener(config, callback)
     config = config or {}
@@ -28,7 +20,6 @@ local function addListener(config, callback)
         isPaused = false
     }
 
-    -- Cleanup: alte Listener, die identisch sind, entfernen
     for i = #RITR.listeners, 1, -1 do
         if RITR.listeners[i].callback == callback then
             table.remove(RITR.listeners, i)
@@ -55,15 +46,11 @@ local function removeListener(sub)
     if #RITR.listeners == 0 and RITR.isUpdaterRegistered then
         KCDUtils.Events.UnregisterUpdater(RITR.updaterFn)
         RITR.isUpdaterRegistered = false
-        -- Reset der States!
         RITR.lastTriggeredAbove = nil
         RITR.lastTriggeredBelow = nil
     end
 end
 
--- =====================================================================
--- Updater
--- =====================================================================
 function RITR.startUpdater()
     local fn = function(deltaTime)
         local ok, rain = pcall(EnvironmentModule.GetRainIntensity)
@@ -106,10 +93,6 @@ function RITR.startUpdater()
     RITR.updaterFn = fn
     KCDUtils.Events.RegisterUpdater(fn)
 end
-
--- =====================================================================
--- Öffentliche API (mit IntelliSense-kompatiblen Docs!)
--- =====================================================================
 
 --- RainIntensityThresholdReached Event
 --- Fires when the rain intensity crosses a threshold
