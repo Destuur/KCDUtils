@@ -5,7 +5,6 @@ KCDUtils.Events.updaters = KCDUtils.Events.updaters or {}
 KCDUtils.Events.watchLoopRunning = KCDUtils.Events.watchLoopRunning or false
 KCDUtils.Events.availableEvents = {}
 
-
 --- Creates a new custom event or returns an existing one
 --- @param eventName string Name of the event
 --- @return table evt Event object with Add, Remove, Pause, Resume, Trigger methods

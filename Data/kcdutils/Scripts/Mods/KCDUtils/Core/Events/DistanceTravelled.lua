@@ -98,7 +98,7 @@ function DT.startUpdater()
                     sub.accumulatedDistance = 0
                     sub.initialized = true
                 else
-                    local dist = KCDUtils.Math.CalculateDistance(sub.lastPos, pos)
+                    local dist = KCDUtils.Math.CalculateDistance(sub.lastPos, pos, true)
                     sub.accumulatedDistance = sub.accumulatedDistance + dist
 
                     if sub.accumulatedDistance >= sub.triggerDistance then
