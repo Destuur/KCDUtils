@@ -1,104 +1,86 @@
---- @diagnostic disable
 KCDUtils = KCDUtils or {}
----@class KCDUtilsEvents
+--- @class KCDUtilsEvents
 KCDUtils.Events = KCDUtils.Events or {}
+KCDUtils.Events.updaters = KCDUtils.Events.updaters or {}
+KCDUtils.Events.watchLoopRunning = KCDUtils.Events.watchLoopRunning or false
+KCDUtils.Events.availableEvents = {}
 
-if KCDUtils.Events.initialized then
-    System.LogAlways("[EventForge] Already initialized, skipping EventForge.lua")
-    return
-end
+--- Creates a new custom event or returns an existing one
+--- @param eventName string Name of the event
+--- @return table evt Event object with Add, Remove, Pause, Resume, Trigger methods
+local function CreateEvent(eventName)
+    local evt = KCDUtils.Events[eventName] or {}
+    KCDUtils.Events[eventName] = evt
 
-local listeners = {}
-local cachedEvents = {}
-local availableEvents = {}
-table.unpack = table.unpack or unpack  -- Lua 5.1 compatibility
-table.pack = table.pack or function(...)
-    return { n = select("#", ...), ... }
-end
+    evt.listeners = evt.listeners or {}
+    evt.isUpdaterRegistered = evt.isUpdaterRegistered or false
+    evt.updaterFn = evt.updaterFn or nil
 
---------------------------------------------------
---- Event Registry
---------------------------------------------------
--- #region Event Registry
+    --- Add a new listener to the event
+    --- @param config table Optional event-specific configuration
+    --- @param callback fun(data:table) Function to be called when event fires
+    --- @return table|nil subscription Subscription handle (pass to Remove, Pause, Resume)
+    function evt.Add(config, callback)
+        config = config or {}
 
--- Registers a new event in the EventForge system.
---
---- This function allows a mod to declare a new event that can be listened to by other mods or systems.
----
----@param eventName (string) The unique name of the event to register.
----@param modName (string) The name of the mod registering the event.
----@param description (string|nil) Optional description of the event's purpose.
----@param paramList (table|nil) Optional list of parameter names or descriptions for the event.
-function KCDUtils.Events.DefineEvent(eventName, modName, description, paramList)
-    local logger = KCDUtils.Logger.Factory(modName)
+        -- Prüfen, ob Callback eine Funktion ist
+        if type(callback) ~= "function" then
+            local logger = KCDUtils.Logger.Factory("KCDUtils.Events." .. (eventName or "Unknown"))
+            logger:Error("Add: callback must be a function, got: " .. tostring(callback))
+            return nil
+        end
 
-    availableEvents[eventName] = availableEvents[eventName] or {}
-    table.insert(availableEvents[eventName], {
-        modName = modName,
-        description = description or "",
-        params = paramList or {}
-    })
+        -- Doppelten Callback entfernen (optional)
+        for i = #evt.listeners, 1, -1 do
+            if evt.listeners[i].callback == callback then
+                table.remove(evt.listeners, i)
+            end
+        end
 
-    logger:Info("Event registered: '" .. eventName .. "'")
-end
+        local subscription = { callback = callback, config = config, isPaused = false }
+        table.insert(evt.listeners, subscription)
 
+        -- Optional: Start updater, falls vorhanden
+        if not evt.isUpdaterRegistered and evt.startUpdater then
+            evt.startUpdater()
+            evt.isUpdaterRegistered = true
+        end
 
--- #endregion
-
---------------------------------------------------
---- Event Listener Subscription
---------------------------------------------------
--- #region Event Listener Subscription
-
--- This section contains the implementation of the KCDUtils listener subscription function.
--- The KCDUtils system allows different mods or systems to register callback functions for specific events.
--- When an event is triggered, all subscribed listeners for that event will be notified.
-
---- Subscribes a listener (callback) for a specific event in the KCDUtils system.
----
---- This function allows a mod to listen for a specific event by providing:
----   - eventName: the event to listen for
----   - callbackFunction: the function to call when the event is fired
----   - opts: table with optional fields:
----       - modName (string): the name of the mod registering the listener (for debugging)
----       - once (boolean): if true, the listener is removed after the first call
----
---- Duplicate listeners (same callback for the same event) are prevented.
----
---- @param eventName (string) The name of the event to listen for.
---- @param callbackFunction (function) The function to be called when the event is triggered.
---- @param opts (table|nil) Optional table with fields 'modName' (string) and 'once' (boolean).
-function KCDUtils.Events.Subscribe(eventName, callbackFunction, opts)
-    opts = opts or {}
-    local logger = KCDUtils.Logger.Factory(opts.Name or "Unknown")
-
-    if type(callbackFunction) ~= "function" then
-        error("Callback must be a function")
+        return subscription
     end
 
-    listeners[eventName] = listeners[eventName] or {}
-
-    for _, listener in ipairs(listeners[eventName]) do
-        if listener.callback == callbackFunction then
-            return
+    --- Remove a previously registered listener
+    --- @param subscription table Subscription object returned from Add
+    function evt.Remove(subscription)
+        for i = #evt.listeners, 1, -1 do
+            if evt.listeners[i] == subscription then
+                table.remove(evt.listeners, i)
+                break
+            end
+        end
+        if #evt.listeners == 0 and evt.isUpdaterRegistered then
+            if evt.updaterFn then KCDUtils.Events.UnregisterUpdater(evt.updaterFn) end
+            evt.isUpdaterRegistered = false
         end
     end
 
-    table.insert(listeners[eventName], {
-        callback = callbackFunction,
-        modName = opts.modName,
-        once = opts.once or false
-    })
+    --- Temporarily pause a subscription without removing it
+    --- @param subscription table Subscription object returned from Add
+    function evt.Pause(subscription) if subscription then subscription.isPaused = true end end
 
-    logger:Info("Subscribed listener for event '" .. eventName .. "'.")
+    --- Resume a paused subscription
+    --- @param subscription table Subscription object returned from Add
+    function evt.Resume(subscription) if subscription then subscription.isPaused = false end end
 
-    if cachedEvents[eventName] and #cachedEvents[eventName] > 0 then
-        logger:Info("Publish cached events for '" .. eventName .. "' (" .. tostring(#cachedEvents[eventName]) .. " cached events).")
-        for _, args in ipairs(cachedEvents[eventName]) do
-            KCDUtils.Event.Publish(eventName, table.unpack(args))
+    --- Fire/trigger the event manually
+    --- @param data table Optional data passed to all listeners
+    function evt.Trigger(data)
+        for _, subscription in ipairs(evt.listeners) do
+            if not subscription.isPaused then subscription.callback(data or {}) end
         end
-        cachedEvents[eventName] = nil
     end
+
+    return evt
 end
 
 --- Utility to subscribe a method as listener to a system event
@@ -106,7 +88,8 @@ end
 --- @param methodName string Name of the method on the target
 --- @param eventName string|nil Name of the system event (default = methodName)
 function KCDUtils.Events.SubscribeSystemEvent(target, methodName, eventName)
-    local logger = KCDUtils.Logger.Factory(target.Name or "Unknown")
+    local name = target.Name or ("Table@" .. tostring(target))
+    local logger = KCDUtils.Logger.Factory(name)
     eventName = eventName or methodName
     if not target[methodName] or type(target[methodName]) ~= "function" then
         logger:Error("Target does not have a method named '" .. methodName .. "'")
@@ -130,143 +113,59 @@ function KCDUtils.Events.RegisterOnGameplayStarted(target)
     KCDUtils.Events.SubscribeSystemEvent(target, "OnGameplayStarted")
 end
 
---- Unsubscribes a previously subscribed listener for a specific event.
----
---- Removes the given callback function from the list of listeners for the specified event.
----
---- @param eventName (string) The name of the event.
---- @param callbackFunction (function) The callback function to remove.
-function KCDUtils.Events.Unsubscribe(eventName, callbackFunction)
-    local lst = listeners[eventName]
-    if not lst then return end
-    for i = #lst, 1, -1 do
-        if lst[i].callback == callbackFunction then
-            table.remove(lst, i)
-        end
-    end
-    if #lst == 0 then listeners[eventName] = nil end
+--- Registers a function to be called on every watch loop tick
+--- @param fn function Function to be registered
+function KCDUtils.Events.RegisterUpdater(fn)
+    if type(fn) ~= "function" then return end
+    table.insert(KCDUtils.Events.updaters, fn)
 end
--- #endregion
 
---------------------------------------------------
---- Event Publishing
---------------------------------------------------
--- #region Event Publishing
-
---- Publish (triggers) an event, calling all subscribed listeners for that event.
----
---- If no listeners are subscribed, the event and its arguments are cached for later delivery.
---- Listeners subscribed with 'once=true' are removed after being called.
----
---- @param eventName (string) The name of the event to publish.
---- @param ... (any) Arguments to pass to the listener callback functions.
-function KCDUtils.Events.Publish(eventName, ...)
-    System.LogAlways("Publish called for '" .. eventName .. "' with " .. select("#", ...) .. " args")
-    local lst = listeners[eventName]
-    if not lst or #lst == 0 then
-        cachedEvents[eventName] = cachedEvents[eventName] or {}
-        table.insert(cachedEvents[eventName], table.pack(...))
-        System.LogAlways("No listeners for event '" .. eventName .. "'. Event cached.")
-        return
-    end
-
-    for i = #lst, 1, -1 do
-        local listener = lst[i]
-        local ok, err = pcall(listener.callback, ...)
-        if not ok then
-            System.LogAlways("Error calling listener from mod '" .. (listener.modName or "Unknown") .. "': " .. err)
-        end
-
-        if listener.once then
-            table.remove(lst, i)
+--- Removes a previously registered updater function from the watch loop
+--- @param fn function Function previously registered via RegisterUpdater
+function KCDUtils.Events.UnregisterUpdater(fn)
+    for i = #KCDUtils.Events.updaters, 1, -1 do
+        if KCDUtils.Events.updaters[i] == fn then
+            table.remove(KCDUtils.Events.updaters, i)
+            break
         end
     end
 end
 
--- #endregion
+--- Starts the global event watch loop that periodically calls all registered updaters
+function KCDUtils.Events.WatchLoop()
+    if KCDUtils.Events.watchLoopRunning then return end
+    KCDUtils.Events.watchLoopRunning = true
 
---------------------------------------------------
---- Event Debugging
---------------------------------------------------
--- #region Debugging Tools
+    local function loop()
+        for _, fn in ipairs(KCDUtils.Events.updaters) do
+            pcall(fn, 1/60)
+        end
+        Script.SetTimer(16, loop)
+    end
 
---- Logs all registered events and their descriptions/parameters to the system log.
----
---- Usage: EventForge.Events
----
---- Lists all registered events and their descriptions/parameters.
+    loop()
+end
+
+--- Registers event metadata for documentation/debug purposes
+--- @param eventName string Name of the event
+--- @param modName string Name of the mod registering the event
+--- @param description string Optional description
+--- @param paramList table Optional list of parameters for documentation
+function KCDUtils.Events.RegisterEvent(eventName, modName, description, paramList)
+    KCDUtils.Events.availableEvents[eventName] = KCDUtils.Events.availableEvents[eventName] or {}
+    table.insert(KCDUtils.Events.availableEvents[eventName], {
+        modName = modName,
+        description = description or "",
+        params = paramList or {}
+    })
+end
+
+--- Lists all available events and their registered mods in the system log
 function KCDUtils.Events.ListEvents()
-    System.LogAlways("---- Registered Events ----")
-    for eventName, mods in pairs(availableEvents) do
+    for eventName, mods in pairs(KCDUtils.Events.availableEvents) do
         System.LogAlways("Event: " .. eventName)
-        for _, info in ipairs(mods) do
-            System.LogAlways("  - By " .. info.modName .. ": " .. (info.description or ""))
-            if info.params and #info.params > 0 then
-                System.LogAlways("    Params: " .. table.concat(info.params, ", "))
-            end
-        end
     end
 end
 
----
---- Logs all listeners registered for all events to the system log.
----
---- Usage: EventForge.Listeners
----
---- Lists all registered listeners for every event, including the mod name and whether the listener is set to fire only once.
----
-function KCDUtils.Events.ListSubscribers()
-    System.LogAlways("---- Registered Listeners ----")
-    local found = false
-    for eventName, lst in pairs(listeners) do
-        if lst and #lst > 0 then
-            System.LogAlways("Event: " .. eventName)
-            for _, listener in ipairs(lst) do
-                System.LogAlways("  - " .. (listener.modName or "Unknown") .. " (once=" .. tostring(listener.once) .. ")")
-            end
-            found = true
-        end
-    end
-    if not found then
-        System.LogAlways("No listeners registered.")
-    end
-end
-
----
---- Logs all events registered by a specific mod to the system log.
----
---- @param modName (string) The name of the mod whose events should be listed.
-function KCDUtils.Events.ListEventsByMod(modName)
-    System.LogAlways("---- Events registered by " .. modName .. " ----")
-    for eventName, mods in pairs(availableEvents) do
-        for _, info in ipairs(mods) do
-            if info.modName == modName then
-                System.LogAlways("  - " .. eventName .. ": " .. (info.description or ""))
-                if info.params and #info.params > 0 then
-                    System.LogAlways("    Params: " .. table.concat(info.params, ", "))
-                end
-            end
-        end
-    end
-end
-
--- #endregion
-
---------------------------------------------------
---- Console Commands
---------------------------------------------------
--- #region Console Commands
-
---- Console Commands for accessing EventForge functionality
--- System.AddCCommand("EventForge.Events", "KCDUtils.Event.DebugListEvents()", "List all registered events")
--- System.AddCCommand("EventForge.Listeners", "KCDUtils.Event.DebugListListeners()", "List all registered listeners for all events")
--- #### Not working with params ####
--- System.AddCCommand("EventForge.Listeners", "KCDUtils.Event.DebugListListeners()", "List all registered listeners for an event")
--- System.AddCCommand("EventForge.EventsByMod", "KCDUtils.Event.DebugListEventsByMod()", "List all events registered by a mod")
--- #####################
-
--- #endregion
-
-------------------------------------------------
-
-KCDUtils.Events.initialized = true
+KCDUtils.Events.CreateEvent = CreateEvent
+KCDUtils.Events.WatchLoop()

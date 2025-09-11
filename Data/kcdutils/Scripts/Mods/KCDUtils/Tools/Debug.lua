@@ -39,7 +39,6 @@ local function logValue(value, indent, visited)
     end
 end
 
--- Wrapper für SetSearchBeam
 function KCDUtils.Debug.DebugSetSearchBeam(actor, dir)
     local logger = KCDUtils.Logger.Factory("Debug")
     if not actor or not actor.SetSearchBeam then
@@ -47,15 +46,13 @@ function KCDUtils.Debug.DebugSetSearchBeam(actor, dir)
         return
     end
 
-    -- call original function
     local results = { actor:SetSearchBeam(dir) }
 
-    -- log all results
     logger:Info("SetSearchBeam returned " .. tostring(#results) .. " values:")
     for i, v in ipairs(results) do
         logger:Info("[" .. i .. "] = ")
         logValue(v, "  ")
     end
 
-    return table.unpack(results) -- gibt die originalen Werte weiter zurück
+    return table.unpack(results)
 end

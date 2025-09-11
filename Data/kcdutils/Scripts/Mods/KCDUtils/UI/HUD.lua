@@ -3,121 +3,158 @@ KCDUtils = KCDUtils or {}
 ---@class KCDUtilsUI
 KCDUtils.UI = KCDUtils.UI or {}
 
+--- Shows a notification for reputation gained.
+--- @param message string The message to display.
 function KCDUtils.UI.ShowReputationGained(message)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowReputationChanged", 0, message)
 end
 
+--- Shows a notification for reputation lost.
+--- @param message string The message to display.
 function KCDUtils.UI.ShowReputationLost(message)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowReputationChanged", 1, message)
 end
 
-function KCDUtils.UI.ShowTutorial(message)
-    KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowTutorial", "KCDUtils_Tutorial", message, 8000, false, 0, 0, false, "")
+--- Shows a tutorial message on the HUD.
+--- @param message string The tutorial message to display.
+--- @param duration integer (optional) The duration to display the tutorial in milliseconds. Default is 8000 ms.
+--- @param actionHintEnable boolean (optional) Whether to enable action hints. Default is false.
+function KCDUtils.UI.ShowTutorial(message, duration, actionHintEnable)
+    duration = duration or 8000
+    actionHintEnable = actionHintEnable or false
+    KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowTutorial", "KCDUtils_Tutorial", message, duration, actionHintEnable, 0, 0, false, "")
 end
 
+--- Hides a specific tutorial message by its ID.
+--- @param id string The tutorial ID to hide.
 function KCDUtils.UI.HideTutorial(id)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "HideTutorial", id)
 end
 
+--- Hides the currently displayed tutorial message.
 function KCDUtils.UI.HideCurrentTutorial()
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "HideCurrentTutorial")
 end
 
---- Shows discovered codex
---- @param name string name of Location/POI/etc
---- @param iconId string id of icon if exist
---- @param perkId string id of perk
+--- Shows a discovered codex entry.
+--- @param name string Name of the location/POI/etc.
+--- @param iconId string Icon ID if available.
+--- @param perkId string Perk ID if available.
 function KCDUtils.UI.ShowDiscoveredCodex(name, iconId, perkId)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowDiscoveredCodex", name, iconId, perkId)
 end
 
---- Shows discovered Points of Interest (POI)
---- @param type KCDUtilsDiscoveredPoiType|integer Header type 
---- @param name string Name of the POI
---- @param iconId string Id of icon
---- @param perkId string Id of perk
+--- Shows a discovered point of interest (POI).
+--- @param type KCDUtilsDiscoveredPoiType|integer POI header type.
+--- @param name string Name of the POI.
+--- @param iconId string Icon ID.
+--- @param perkId string Perk ID.
 function KCDUtils.UI.ShowDiscoveredPoi(type, name, iconId, perkId)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowDiscoveredPoi", type, name, iconId, perkId)
 end
 
---- Shows discovered Locations
---- @param type KCDUtilsDiscoveredLocationType|integer Size and Position of UI Element
---- @param name string Name of the Location
---- @param iconId string Id of icon
---- @param perkId string Id of perk
+--- Shows a discovered location.
+--- @param type KCDUtilsDiscoveredLocationType|integer Location UI element type.
+--- @param name string Name of the location.
+--- @param iconId string Icon ID.
+--- @param perkId string Perk ID.
 function KCDUtils.UI.ShowDiscoveredLocation(type, name, iconId, perkId)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowDiscoveredLocation", type, name, iconId, perkId)
 end
 
+--- Hides the codex action hint from the HUD.
 function KCDUtils.UI.HideCodexActionHint()
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "HideCodexActionHint")
 end
 
---- Sets the HUD element of the current crime state (Bunny beneath compass)
---- @param state KCDUtilsCrimeState|integer Crime state
+--- Sets the HUD element for the current crime state.
+--- @param state KCDUtilsCrimeState|integer The crime state value.
 function KCDUtils.UI.SetCrimeState(state)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "SetCrimeState", state)
 end
 
---- Sets the HUD element of the current crime recognizing value
---- @param value integer Goes from 0 to 9 and interacts with the bunny ears
+--- Sets the HUD element for the current crime recognizing value.
+--- @param value integer Value from 0 to 9, interacts with the bunny ears.
 function KCDUtils.UI.SetCrimeRecognizingValue(value)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "SetCrimeRecognizingValue", value)
 end
 
---- Sets the HUD element of the current trespass state
---- @param state KCDUtilsTrespassState|integer Trespass state
+--- Sets the HUD element for the current trespass state.
+--- @param state KCDUtilsTrespassState|integer The trespass state value.
 function KCDUtils.UI.SetTrespassState(state)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "SetTrespassState", state)
 end
 
---- Sets the HUD element of the current wanted state
---- @param state KCDUtilsWantedState|integer Wanted state
+--- Sets the HUD element for the current wanted state.
+--- @param state KCDUtilsWantedState|integer The wanted state value.
 function KCDUtils.UI.SetWantedState(state)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "SetWantedState", state)
 end
 
+--- Shows an info text message on the HUD.
+--- @param message string The info text to display.
+--- @param priority integer Priority of the message.
+--- @param duration integer Duration in milliseconds.
+--- @param background boolean Whether to show a background shadow.
 function KCDUtils.UI.ShowInfoText(message, priority, duration, background)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowInfoText", message, priority, duration, background)
 end
 
+--- Hides the currently displayed info text message.
 function KCDUtils.UI.HideInfoText()
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "HideInfoText")
 end
 
+--- Sets the playing state for info text messages.
+--- @param playing boolean Whether info text is playing.
+--- @param flush boolean Whether to flush the info text.
 function KCDUtils.UI.SetPlayingInfoText(playing, flush)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "SetPlayingInfoText", playing, flush)
 end
 
--- you have used the following perk
+--- Shows a notification for a used perk.
+--- @param iconName string The icon name for the perk.
+--- @param uiName string The UI name for the perk.
 function KCDUtils.UI.ShowPerkUsed(iconName, uiName)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowPerkUsed", iconName, uiName)
 end
 
--- new specialization gained
+--- Shows a notification for a newly gained perk.
+--- @param iconName string The icon name for the perk.
+--- @param uiName string The UI name for the perk.
 function KCDUtils.UI.ShowPerkGained(iconName, uiName)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowPerkGained", iconName, uiName)
 end
 
--- new combo learned
+--- Shows a notification for a newly learned combo.
+--- @param iconName string The icon name for the combo.
+--- @param uiName string The UI name for the combo.
 function KCDUtils.UI.ShowComboLearned(iconName, uiName)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowComboLearned", iconName, uiName)
 end
 
--- text top right corner without icon
+--- Shows a notification message in the top right corner without an icon.
+--- @param message string The notification message to display.
 function KCDUtils.UI.ShowNotification(message)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowNotification", message)
 end
 
--- skills found in IPL_GameData.pak\Libs\UI\Textures\Icons\SkillChecks\ "dominate_icon.dds" becomes "dominate"
+--- Shows a skill check success notification.
+--- @param skill string The skill name.
 function KCDUtils.UI.ShowSkillCheckSuccess(skill)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowSkillCheckResult", skill, 1)
 end
 
+--- Shows a skill check failure notification.
+--- @param skill string The skill name.
 function KCDUtils.UI.ShowSkillCheckFail(skill)
     KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowSkillCheckResult", skill, 0)
 end
 
+--- Subscribes to the system event for showing a codex action hint.
+--- @param target any The target object.
+--- @param eventName string The event name.
+--- @param methodName string The method name to call.
 function KCDUtils.UI.OnShowCodexActionHint(target, eventName, methodName)
     KCDUtils.Events.SubscribeSystemEvent(target, methodName, eventName)
 end

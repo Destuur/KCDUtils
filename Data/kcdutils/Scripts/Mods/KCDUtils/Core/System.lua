@@ -91,6 +91,10 @@ function KCDUtils.System.GetCurrAsyncTime()
     return System.GetCurrAsyncTime()
 end
 
+function KCDUtils.System.GetTimeOfDayHour()
+    return Entity.GetTimeOfDayHour()
+end
+
 function KCDUtils.System.GetNearestEntityByName(entityName)
     local logger = KCDUtils.Logger.Factory("System")
     local entity = System.GetNearestEntityByName(entityName)
