@@ -1,4 +1,4 @@
-![KCDUtils – 9 out of 10 blacksmiths praise it… the 10th burned his forge.](https://i.imgur.com/LrGHQmJ.png)
+![KCDUtils – 9 out of 10 blacksmiths praise it… the 10th burned his forge.](https://i.imgur.com/OJsBmGU.png)
 
 # KCDUtils
 
