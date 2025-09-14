@@ -31,7 +31,7 @@ function KCDUtils.Command.Add(modName, command, callbackName, description)
     if type(command) ~= "string" then
         logger:Error("Command must be a string")
     end
-    System.AddCCommand(tostring(modName .. "." .. command), callbackName, description or "No description provided")
+    System.AddCCommand(tostring(modName .. "_" .. command), callbackName, description or "No description provided")
 end
 
 --- Adds a console command for the specified mod with an inline function callback
@@ -48,7 +48,7 @@ end
 ---
 --- ### Usage:
 ---
---- Console command `MyMod.ping` writes "Pong!" to the log.
+--- Console command `MyMod_ping` writes "Pong!" to the log.
 ---
 --- @param modName string Unique mod identifier
 --- @param command string Command name
@@ -61,7 +61,7 @@ function KCDUtils.Command.AddFunction(modName, command, func, description)
         func(...)
     end
 
-    System.AddCCommand(modName .. "." .. command, wrapperName .. "(%line)", description or "")
+    System.AddCCommand(modName .. "_" .. command, wrapperName .. "(%line)", description or "")
 end
 
 --- Executes a console command directly

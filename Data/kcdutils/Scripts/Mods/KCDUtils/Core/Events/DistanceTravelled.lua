@@ -84,9 +84,15 @@ function DT.startUpdater()
                     sub.accumulatedDistance = sub.accumulatedDistance + dist
 
                     if sub.accumulatedDistance >= sub.triggerDistance then
+                        local speed = 0
+                        if deltaTime > 0 then
+                            speed = dist / deltaTime
+                        end
+
                         sub.callback({
                             distance = sub.accumulatedDistance,
-                            position = pos
+                            position = pos,
+                            speed = speed -- <--- neue Info
                         })
                         sub.accumulatedDistance = 0
                     end
@@ -106,7 +112,7 @@ end
 ---
 --- @param config table Configuration for the event:
 ---               triggerDistance = number Minimum distance to trigger
---- @param callback fun(eventData:{distance:number, position:table}) Function called when triggerDistance is reached
+--- @param callback fun(eventData:{distance:number, position:table, speed:number}) Function called when triggerDistance is reached
 --- @return table subscription Subscription handle (pass to Remove, Pause, Resume)
 KCDUtils.Events.DistanceTravelled.Add = function(config, callback)
     return addListener(config, callback)
