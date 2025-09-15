@@ -9,7 +9,8 @@
     "Entity",
     "EnvironmentModule",
     "Physics",
-    "ent_all"
+    "ent_all",
+    "AudioUtils"
   ],
   "Lua.diagnostics.disable": [
     "undefined-doc-name",
