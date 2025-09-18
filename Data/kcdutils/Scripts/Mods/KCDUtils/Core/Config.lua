@@ -9,12 +9,14 @@ KCDUtils.Config = KCDUtils.Config or {}
 --- @param configTable table The table containing default config values.
 function KCDUtils.Config.LoadFromDB(modName, configTable)
     local db = KCDUtils.DB.Factory(modName)
-    for key, value in pairs(configTable) do
-        local val = db:Get(key)
-        if val ~= nil then
-            configTable[key] = val
-        else
-            db:Set(key, value)
+    for key, cfg in pairs(configTable) do
+        if type(cfg) == "table" and cfg.value ~= nil then
+            local val = db:Get(key)
+            if val ~= nil then
+                cfg.value = val   -- nur den Wert aktualisieren, Referenz bleibt
+            else
+                db:Set(key, cfg.value)
+            end
         end
     end
 end

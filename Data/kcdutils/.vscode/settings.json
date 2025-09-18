@@ -15,6 +15,7 @@
   "Lua.diagnostics.disable": [
     "undefined-doc-name",
     "redundant-parameter",
-    "missing-fields"
+    "missing-fields",
+    "ambiguity-1"
   ]
 }
