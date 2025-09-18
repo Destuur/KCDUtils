@@ -22,7 +22,7 @@ end
 function KCDUtils.UI.ShowTutorial(message, duration, actionHintEnable)
     duration = duration or 8000
     actionHintEnable = actionHintEnable or false
-    KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowTutorial", "KCDUtils_Tutorial", message, duration, actionHintEnable, 0, 0, false, "")
+    KCDUtils.UIAction.CallFunction(KCDUtils.Resources.UIActionElements.HUD, "ShowTutorial", "KCDUtils_Tutorial", message, duration, false, 0, 0, actionHintEnable, "")
 end
 
 --- Hides a specific tutorial message by its ID.

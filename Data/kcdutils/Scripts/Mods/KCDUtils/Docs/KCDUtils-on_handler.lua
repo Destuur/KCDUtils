@@ -1,6 +1,7 @@
 ---@meta
 ---@class (exact) KCDUtils*on_handler
 ---@field public CombatStateChanged fun(data:table) Event fired when the combat state changes
+---@field public DialogStateChanged fun(data:table) Event fired when the dialog state changes
 ---@field public DistanceTravelled fun(data:table) Event fired when the player travels a certain distance
 ---@field public MoneyThresholdReached fun(data:table) Event fired when the player's money crosses a certain threshold (up or down)
 ---@field public MountedStateChanged fun(data:table) Event fired when the player's mounted state changes
