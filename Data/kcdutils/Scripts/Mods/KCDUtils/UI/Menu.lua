@@ -49,27 +49,45 @@ function KCDUtils.UI.ConfigBuilder(defs)
     local list = {}
 
     for key, def in pairs(defs) do
-        if type(def) == "table" then  -- ✅ nur Tabellen verarbeiten
-            local entry = {
-                id = key,
-                type = def.type or "value",
-                tooltip = def.tooltip,
-                min = def.min,
-                max = def.max,
-                choices = def.choices,
-                valueMap = def.valueMap,
-                hidden = def.hidden or false,
-                value = def[1] ~= nil and def[1] or def.value
-            }
-            cfg[key] = entry
-            table.insert(list, entry)
-        else
-            System.LogAlways(("[ConfigBuilder] Skipping invalid def for key '%s'"):format(key))
+        local entry = {
+            id = key,
+            type = def.type or "value",
+            tooltip = def.tooltip,
+            min = def.min,
+            max = def.max,
+            choices = def.choices,
+            valueMap = def.valueMap,
+            hidden = def.hidden or false,
+            
+            -- 🔹 Initialer Wert
+            value = def[1] ~= nil and def[1] or def.value,
+            
+            -- 🔹 Default-Werte speichern
+            defaultValue = def[1] ~= nil and def[1] or def.value,
+            defaultChoiceId = def.defaultChoiceId or 1
+        }
+
+        -- 🔹 Wenn Choice ohne valueMap, setzen wir defaultValue auf Index
+        if entry.type == "choice" and not entry.valueMap then
+            -- value ist Index der Auswahl
+            local foundIndex = 1
+            for i, v in ipairs(entry.choices or {}) do
+                if v == entry.value then
+                    foundIndex = i
+                    break
+                end
+            end
+            entry.defaultChoiceId = foundIndex
+            entry.value = foundIndex
         end
+
+        cfg[key] = entry
+        table.insert(list, entry)
     end
 
     cfg._list = list
 
+    -- 🔹 Metatable für einfachen Zugriff
     return setmetatable(cfg, {
         __index = function(t, k)
             local entry = rawget(t, k)
@@ -87,20 +105,6 @@ function KCDUtils.UI.ConfigBuilder(defs)
             end
         end
     })
-end
-
-
-function KCDUtils.UI:ShowConfirmation(id, question, yesText, noText, callbackYes, callbackNo)
-    self._confirmation = { id = id, yes = callbackYes, no = callbackNo }
-    UIAction.CallFunction("Menu", -1, "AddConfirmation", id, question, yesText, noText, 0, 1)
-end
-
-function KCDUtils.UI:HandleConfirmation(id, answer)
-    if not self._confirmation or self._confirmation.id ~= id then return end
-    if answer == 1 and self._confirmation.yes then self._confirmation.yes() end
-    if answer == 0 and self._confirmation.no then self._confirmation.no() end
-    UIAction.CallFunction("Menu", -1, "RemoveConfirmation", id)
-    self._confirmation = nil
 end
 
 -- Mod-Übersicht öffnen
@@ -201,37 +205,6 @@ function KCDUtils.UI:OnApplySettings()
     System.LogAlways("[KCDUtils][OnApplySettings] All config values saved for mod " .. mod.name)
 end
 
-function KCDUtils.UI.UpdateConfigChoice(id, choiceId)
-    local mods = getModsForMenu()
-    for _, mod in ipairs(mods) do
-        if mod.config then
-            for _, cfg in ipairs(GetConfigEntries(mod.config)) do
-                if cfg.id == id and cfg.type == "choice" then
-                    local oldValue = cfg.value
-                    System.LogAlways(("[KCDUtils][UpdateConfigChoice] Before: %s = %s"):format(id, tostring(oldValue)))
-
-                    -- 🔹 UI ist 0-basiert, Lua 1-basiert
-                    local luaIndex = choiceId + 1
-                    cfg._selectedIndex = luaIndex
-
-                    if cfg.valueMap then
-                        cfg.value = cfg.valueMap[luaIndex]
-                    else
-                        cfg.value = cfg.choices[luaIndex]
-                    end
-
-                    System.LogAlways(("[KCDUtils][UpdateConfigChoice] After: %s = %s"):format(id, tostring(cfg.value)))
-
-                    mod.DB:Set(id, cfg.value)
-                    System.LogAlways(("[KCDUtils][UpdateConfigChoice] Saved to DB: %s = %s"):format(id, tostring(cfg.value)))
-                    return
-                end
-            end
-        end
-    end
-end
-
-
 function KCDUtils.UI.UpdateConfigValue(id, value)
     local mods = getModsForMenu()
     for _, mod in ipairs(mods) do
@@ -239,7 +212,29 @@ function KCDUtils.UI.UpdateConfigValue(id, value)
             for _, cfg in ipairs(GetConfigEntries(mod.config)) do
                 if cfg.id == id and cfg.type == "value" then
                     cfg.value = value
-                    mod.db:Set(id, value)
+                    -- ❌ nicht sofort speichern
+                    return
+                end
+            end
+        end
+    end
+end
+
+function KCDUtils.UI.UpdateConfigChoice(id, choiceId)
+    local mods = getModsForMenu()
+    for _, mod in ipairs(mods) do
+        if mod.config then
+            for _, cfg in ipairs(GetConfigEntries(mod.config)) do
+                if cfg.id == id and cfg.type == "choice" then
+                    local luaIndex = choiceId + 1
+                    cfg._selectedIndex = luaIndex
+                    if cfg.valueMap then
+                        cfg.value = cfg.valueMap[luaIndex]
+                    else
+                        cfg.value = cfg.choices[luaIndex]
+                    end
+
+                    -- ❌ nicht sofort in DB speichern
                     return
                 end
             end
@@ -248,22 +243,41 @@ function KCDUtils.UI.UpdateConfigValue(id, value)
 end
 
 function KCDUtils.UI:OnResetSettings()
+    System.LogAlways("[KCDUtils][OnResetSettings] Resetting config to default values")
     local mods = getModsForMenu()
+    System.LogAlways(("[KCDUtils][OnResetSettings] Found %d mods with config"):format(#mods))
     local mod = mods[self._currentModIndex]
-    if not mod then return end
+    System.LogAlways(("[KCDUtils][OnResetSettings] Current mod index: %s"):format(tostring(self._currentModIndex)))
+    if not mod or not mod.config then return end
+    System.LogAlways(("[KCDUtils][OnResetSettings] Resetting config for mod: %s"):format(mod.name))
 
     for _, cfg in ipairs(GetConfigEntries(mod.config)) do
-        if mod.db then
-            local stored = mod.db:Get(cfg.id, cfg.value)
-            cfg.value = stored
+        System.LogAlways(("[KCDUtils][OnResetSettings] Processing: %s"):format(cfg.id))
 
-            if cfg.type == "choice" then
-                cfg._selectedIndex = stored
-                UIAction.CallFunction("Menu", -1, "SetChoice", cfg.id, 0, stored)
-            elseif cfg.type == "value" then
-                UIAction.CallFunction("Menu", -1, "SetValue", cfg.id, 0, stored)
+        if cfg.type == "value" then
+            local defaultValue = cfg.defaultValue or cfg.value or 0
+            cfg.value = defaultValue
+            UIAction.CallFunction("Menu", -1, "SetValue", cfg.id, 0, defaultValue)
+            System.LogAlways(("[KCDUtils][OnResetSettings] SetValue: %s = %s"):format(cfg.id, tostring(defaultValue)))
+
+        elseif cfg.type == "choice" then
+            -- DefaultChoiceId sicherstellen
+            local defaultChoiceId = cfg.defaultChoiceId
+            if defaultChoiceId == nil then
+                -- Fallback auf erste Option
+                defaultChoiceId = 1
             end
+
+            cfg.value = cfg.valueMap and cfg.valueMap[defaultChoiceId] or defaultChoiceId
+            cfg._selectedIndex = defaultChoiceId
+
+            UIAction.CallFunction("Menu", -1, "SetChoice", cfg.id, 0, defaultChoiceId)
+            System.LogAlways(("[KCDUtils][OnResetSettings] SetChoice: %s = index %d, mapped value = %s")
+                :format(cfg.id, defaultChoiceId, tostring(cfg.value)))
         end
+
+        System.LogAlways(("[KCDUtils][OnResetSettings] Reset complete: %s = %s")
+            :format(cfg.id, tostring(cfg.value)))
     end
 end
 
@@ -286,6 +300,7 @@ function KCDUtils.UI:OnMenuButtonEvent(elementName, instanceId, eventName, argTa
         elseif clickedButton == "Apply" then
             self:ShowConfirmation("Apply", "@ui_ApplyChanges", "@ui_Yes", "@ui_No", function() self:OnApplySettings() end, function() end)
         elseif clickedButton == "Reset" then
+            System.LogAlways("[KCDUtils][OnMenuButtonEvent] User requested config reset")
             self:ShowConfirmation("Reset", "@ui_ResetDefault", "@ui_Yes", "@ui_No", function() self:OnResetSettings() end, function() end)
         end
     elseif eventName == "OnInteractiveChoice" then
@@ -299,10 +314,46 @@ function KCDUtils.UI:OnMenuButtonEvent(elementName, instanceId, eventName, argTa
     end
 end
 
+function KCDUtils.UI:ShowConfirmation(id, question, yesText, noText, callbackYes, callbackNo)
+    if self._confirmation then
+        UIAction.CallFunction("Menu", -1, "RemoveConfirmation", self._confirmation.id)
+        self._confirmation = nil
+    end
+
+    System.LogAlways("[KCDUtils][ShowConfirmation] Showing confirmation dialog: " .. tostring(id))
+    self._confirmation = { id = id, yes = callbackYes, no = callbackNo }
+    UIAction.CallFunction("Menu", -1, "AddConfirmation", id, question, noText, yesText, 0, 1)
+end
+
+function KCDUtils.UI:HandleConfirmation(id, answer)
+    if not self._confirmation or self._confirmation.id ~= id then return end
+    
+    local cbYes = self._confirmation.yes
+    local cbNo = self._confirmation.no
+
+    -- sofort löschen
+    UIAction.CallFunction("Menu", -1, "RemoveConfirmation", id)
+    self._confirmation = nil
+
+    -- dann Callback aufrufen
+    if answer == 1 and cbYes then cbYes() end
+    if answer == 0 and cbNo then cbNo() end
+end
+
+function KCDUtils.UI:OnConfirmationEvent(elementName, instanceId, eventName, argTable)
+    if eventName == "OnConfirm" then
+        local id = tostring(argTable[0])
+        local res = tonumber(argTable[1])
+        System.LogAlways(("[KCDUtils][OnConfirmationEvent] Confirmation received: %s = %s"):format(id, tostring(res)))
+        self:HandleConfirmation(id, res)
+    end
+end
+
 -- Listener beim Start registrieren
 function KCDUtils.UI:RegisterMenuListener()
     if UIAction and UIAction.RegisterElementListener then
         UIAction.RegisterElementListener(self, "Menu", -1, "", "OnMenuButtonEvent")
+        UIAction.RegisterElementListener(self, "Menu", -1, "", "OnConfirmationEvent")
     end
 end
 
