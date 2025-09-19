@@ -227,6 +227,7 @@ function KCDUtils.UI.UpdateConfigValue(id, value)
         if mod.config then
             for _, cfg in ipairs(GetConfigEntries(mod.config)) do
                 if cfg.id == id and cfg.type == "value" then
+                    -- nur temporär im Menü ändern, nicht direkt in mod.Config
                     cfg.value = value
                     return
                 end
@@ -248,6 +249,7 @@ function KCDUtils.UI.UpdateConfigChoice(id, choiceId)
                     else
                         cfg.value = cfg.choices[luaIndex]
                     end
+                    -- NICHT mod.Config setzen, erst in OnApplySettings!
                     return
                 end
             end
@@ -306,71 +308,31 @@ function KCDUtils.UI:OnApplySettings()
 end
 
 function KCDUtils.UI:OnResetSettings()
+    System.LogAlways("[KCDUtils][OnResetSettings] Resetting config to default values")
+
     local mods = getModsForMenu()
     local mod = mods[self._currentModIndex]
-    if not mod or not mod.MenuConfig then return end
+    if not mod or not mod.config then return end
 
-    System.LogAlways("[KCDUtils][OnResetSettings] Resetting config for mod: " .. (mod.Name or "unknown"))
+    System.LogAlways(("[KCDUtils][OnResetSettings] Resetting config for mod: %s"):format(mod.name))
 
-    -- 1. Mod.Config zurücksetzen auf Default-Werte
-    for key, cfg in pairs(mod.MenuConfig) do
+    for _, cfg in ipairs(GetConfigEntries(mod.config)) do
         if cfg.type == "value" then
-            mod.Config[key] = cfg.defaultValue or 0
-        elseif cfg.type == "choice" then
-            local defaultId = cfg.defaultChoiceId or 1
-            if cfg.keys then
-                local vals = cfg.valueMap[defaultId] or {}
-                for i, k in ipairs(cfg.keys) do
-                    mod.Config[k] = vals[i]
-                end
-            else
-                mod.Config[key] = cfg.valueMap and cfg.valueMap[defaultId] or defaultId
-            end
-        end
-    end
-
-    -- 2. MenuConfig aktualisieren aus Mod.Config
-    for key, cfg in pairs(mod.MenuConfig) do
-        if cfg.type == "value" then
-            cfg.value = mod.Config[key]
-            UIAction.CallFunction("Menu", -1, "SetValue", cfg.id, 0, cfg.value)
+            cfg.value = cfg.defaultValue or 0
             System.LogAlways(("[KCDUtils][OnResetSettings] Value reset: %s = %s"):format(cfg.id, tostring(cfg.value)))
-        elseif cfg.type == "choice" then
-            if cfg.keys then
-                for i, k in ipairs(cfg.keys) do
-                    cfg._selectedIndex = nil -- wird unten beim SetChoice neu gesetzt
-                end
-                -- Finde den Index in valueMap, der zu aktuellen Mod.Config passt
-                for i, choice in ipairs(cfg.choices or {}) do
-                    local vals = cfg.valueMap[i] or {}
-                    local match = true
-                    for j, k in ipairs(cfg.keys) do
-                        if mod.Config[k] ~= vals[j] then
-                            match = false
-                            break
-                        end
-                    end
-                    if match then
-                        cfg._selectedIndex = i
-                        break
-                    end
-                end
-            else
-                -- normale Choice
-                for i, val in ipairs(cfg.valueMap or cfg.choices) do
-                    if val == mod.Config[key] then
-                        cfg._selectedIndex = i
-                        break
-                    end
-                end
-            end
 
-            if cfg._selectedIndex then
-                UIAction.CallFunction("Menu", -1, "SetChoice", cfg.id, 0, cfg._selectedIndex)
-                System.LogAlways(("[KCDUtils][OnResetSettings] Choice reset: %s = index %d"):format(cfg.id, cfg._selectedIndex))
-            end
+        elseif cfg.type == "choice" then
+            local defaultChoiceId = cfg.defaultChoiceId or 1
+            cfg._selectedIndex = defaultChoiceId
+            cfg.value = cfg.valueMap and cfg.valueMap[defaultChoiceId] or defaultChoiceId
+            System.LogAlways(("[KCDUtils][OnResetSettings] Choice reset: %s = index %d, mapped value = %s")
+                :format(cfg.id, defaultChoiceId, tostring(cfg.value)))
         end
     end
+
+    -- 🔹 UI danach neu aufbauen, sodass die Buttons die neuen Default-Werte anzeigen
+    self:OpenModConfig(self._currentModIndex)
+    System.LogAlways("[KCDUtils][OnResetSettings] UI refreshed with default values")
 end
 
 -- Listener
@@ -393,9 +355,21 @@ function KCDUtils.UI:OnMenuButtonEvent(elementName, instanceId, eventName, argTa
             self:ShowConfirmation("Apply", "@ui_ApplyChanges", "@ui_Yes", "@ui_No", function() self:OnApplySettings() end, function() end)
         elseif clickedButton == "Reset" then
             System.LogAlways("[KCDUtils][OnMenuButtonEvent] User requested config reset")
-            self:ShowConfirmation("Reset", "@ui_ResetDefault", "@ui_No", "@ui_Yes",
-            function() self:OnResetSettings() end,
-            function() end)
+            self:ShowConfirmation(
+                "Reset",
+                "@ui_ResetDefault",
+                "@ui_No",
+                "@ui_Yes",
+                function() 
+                    -- Callback für "Ja"
+                    System.LogAlways("[KCDUtils][OnMenuButtonEvent] Confirmation received: Reset = Yes")
+                    self:OnResetSettings()
+                end,
+                function() 
+                    -- Callback für "Nein"
+                    System.LogAlways("[KCDUtils][OnMenuButtonEvent] Confirmation received: Reset = No")
+                end
+            )
         end
     elseif eventName == "OnInteractiveChoice" then
         local id = tostring(argTable[0])
