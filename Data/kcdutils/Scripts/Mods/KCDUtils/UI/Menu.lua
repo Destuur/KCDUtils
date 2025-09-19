@@ -1,4 +1,6 @@
+-- Sicherstellen, dass UI-Tables existieren
 KCDUtils.UI = KCDUtils.UI or {}
+
 local buttonX = 1500
 local startY = 380
 local maxButtons = 7
@@ -6,10 +8,11 @@ local buttonWidth = 196
 
 local function getModsForMenu()
     local mods = {}
-    for _, mod in pairs(KCDUtils.RegisteredMods) do
+    for _, mod in pairs(KCDUtils.RegisteredMods or {}) do
         if mod.Config then
+            -- Mod ConfigInstance erstellen, falls noch nicht vorhanden
             if not mod.ConfigInstance then
-                local ok, instance = pcall(KCDUtils.UI.ConfigBuilder, mod.Config)
+                local ok, instance = pcall(KCDUtils.UI.MenuBuilder, mod, mod.Config)
                 if ok then
                     mod.ConfigInstance = instance
                     if mod.DB then
@@ -20,6 +23,7 @@ local function getModsForMenu()
                 end
             end
 
+            -- Nur Mods mit ConfigInstance hinzufügen
             if mod.ConfigInstance then
                 table.insert(mods, {
                     name = mod.Name,
@@ -33,7 +37,6 @@ local function getModsForMenu()
     return mods
 end
 
-
 local function GetConfigEntries(config)
     local entries = {}
     for k, v in pairs(config) do
@@ -44,90 +47,126 @@ local function GetConfigEntries(config)
     return entries
 end
 
-function KCDUtils.UI.ConfigBuilder(defs)
-    local cfg = {}
-    local list = {}
-
-    for key, def in pairs(defs) do
-        local entry = {
-            id = key,
-            type = def.type or "value",
-            tooltip = def.tooltip,
-            min = def.min,
-            max = def.max,
-            choices = def.choices,
-            valueMap = def.valueMap,
-            hidden = def.hidden or false,
-            
-            -- 🔹 Initialer Wert
-            value = def[1] ~= nil and def[1] or def.value,
-            
-            -- 🔹 Default-Werte speichern
-            defaultValue = def[1] ~= nil and def[1] or def.value,
-            defaultChoiceId = def.defaultChoiceId or 1
-        }
-
-        -- 🔹 Wenn Choice ohne valueMap, setzen wir defaultValue auf Index
-        if entry.type == "choice" and not entry.valueMap then
-            -- value ist Index der Auswahl
-            local foundIndex = 1
-            for i, v in ipairs(entry.choices or {}) do
-                if v == entry.value then
-                    foundIndex = i
-                    break
-                end
-            end
-            entry.defaultChoiceId = foundIndex
-            entry.value = foundIndex
-        end
-
-        cfg[key] = entry
-        table.insert(list, entry)
-    end
-
-    cfg._list = list
-
-    -- 🔹 Metatable für einfachen Zugriff
-    return setmetatable(cfg, {
-        __index = function(t, k)
-            local entry = rawget(t, k)
-            if entry and type(entry) == "table" and entry.value ~= nil then
-                return entry.value
-            end
-            return rawget(t, k)
-        end,
-        __newindex = function(t, k, v)
-            local entry = rawget(t, k)
-            if entry and type(entry) == "table" and entry.value ~= nil then
-                entry.value = v
-            else
-                rawset(t, k, v)
-            end
-        end
-    })
-end
-
--- Mod-Übersicht öffnen
-function KCDUtils.UI:OpenModSettings()
-    local mods = getModsForMenu()
-    UIAction.CallFunction("Menu", -1, "ClearAll")
-    UIAction.CallFunction("Menu", -1, "PreparePage", buttonX, startY, maxButtons, "Mod Settings", buttonWidth)
-
-    for i, mod in ipairs(mods) do
-        local uiText = "@ui_" .. mod.name
-        UIAction.CallFunction("Menu", -1, "AddBasicButton", "mod_"..i, 0, uiText, mod.description or "", false)
-    end
-
-    UIAction.CallFunction("Menu", -1, "AddBasicButton", "Settings", 1, "@ui_back", "", false)
-    UIAction.CallFunction("Menu", -1, "ShowPage")
-end
-
 local function GetVanillaChoiceUIText(choice)
     local lookup = { ["Yes"]="@ui_Yes", ["No"]="@ui_No", ["Off"]="@ui_off", ["On"]="@ui_on" }
     return lookup[choice] or choice
 end
 
--- Mod-Config öffnen
+function KCDUtils.UI.MenuBuilder(mod, defs)
+    if not mod or not defs then return end
+    local cfg = mod.Config or {}
+    local menuConfig = {}
+
+    System.LogAlways("[KCDUtils][MenuBuilder] Building menu for mod " .. tostring(mod.Name))
+
+    for key, def in pairs(defs) do
+        if def.type == "value" then
+            menuConfig[key] = {
+                id = key,
+                type = "value",
+                tooltip = def.tooltip,
+                min = def.min or 0,
+                max = def.max or 100,
+                hidden = def.hidden or false,
+                value = cfg[key] or def.default or def[1] or 0,
+                defaultValue = def.default or def[1] or 0
+            }
+
+        elseif def.type == "choice" and not def.keys then
+            menuConfig[key] = {
+                id = key,
+                type = "choice",
+                tooltip = def.tooltip,
+                choices = def.choices or {},
+                hidden = def.hidden or false,
+                valueMap = def.valueMap,
+                value = cfg[key] or def.default or def[1] or 1,
+                defaultChoiceId = def.defaultChoiceId or 1
+            }
+
+        elseif def.type == "choice" and def.keys then
+            local entry = {
+                id = key,
+                type = "choice",
+                tooltip = def.tooltip,
+                choices = {},
+                hidden = def.hidden or false,
+                keys = def.keys,
+            }
+
+            for _, choice in ipairs(def.choices or {}) do
+                table.insert(entry.choices, choice.label or "")
+            end
+
+            -- Aktuelle Werte aus cfg sammeln
+            local currentVals = {}
+            for _, k2 in ipairs(def.keys) do
+                table.insert(currentVals, cfg[k2])
+            end
+
+            -- Index der gewählten Option finden
+            local selectedIndex = def.defaultChoiceId or 1
+            for i, choice in ipairs(def.choices or {}) do
+                local match = true
+                for j, v in ipairs(choice.values or {}) do
+                    if v ~= currentVals[j] then
+                        match = false
+                        break
+                    end
+                end
+                if match then
+                    selectedIndex = i
+                    break
+                end
+            end
+
+            entry.value = selectedIndex
+            entry.apply = function(choiceId)
+                if not (def.choices and def.keys) then return end
+                if not choiceId or not def.choices[choiceId] then
+                    System.LogAlways("[KCDUtils][MenuBuilder] Invalid choiceId: " .. tostring(choiceId))
+                    return
+                end
+                local vals = def.choices[choiceId].values or {}
+                for i, k2 in ipairs(def.keys) do
+                    cfg[k2] = vals[i] or cfg[k2]
+                end
+            end
+
+            menuConfig[key] = entry
+        end
+    end
+
+    mod.MenuConfig = menuConfig
+    mod.ConfigInstance = menuConfig -- <<< entscheidend für getModsForMenu
+    return menuConfig
+end
+
+function KCDUtils.UI:OpenModSettings()
+    System.LogAlways("[KCDUtils][OpenModSettings] Start opening mod settings menu")
+    local mods = getModsForMenu()
+    if not mods or #mods == 0 then
+        System.LogAlways("[KCDUtils][OpenModSettings] No mods found, aborting")
+        return
+    end
+
+    UIAction.CallFunction("Menu", -1, "ClearAll")
+    System.LogAlways("[KCDUtils][OpenModSettings] Menu cleared")
+
+    UIAction.CallFunction("Menu", -1, "PreparePage", buttonX, startY, maxButtons, "Mod Settings", buttonWidth)
+    System.LogAlways("[KCDUtils][OpenModSettings] Page prepared")
+
+    for i, mod in ipairs(mods) do
+        local uiText = "@ui_" .. (mod.name or "unknown")
+        UIAction.CallFunction("Menu", -1, "AddBasicButton", "mod_"..i, 0, uiText, mod.description or "", false)
+        System.LogAlways(("[KCDUtils][OpenModSettings] Adding button for mod #%d: %s"):format(i, mod.name or "unknown"))
+    end
+
+    UIAction.CallFunction("Menu", -1, "AddBasicButton", "Settings", 1, "@ui_back", "", false)
+    UIAction.CallFunction("Menu", -1, "ShowPage")
+    System.LogAlways("[KCDUtils][OpenModSettings] Menu displayed")
+end
+
 function KCDUtils.UI:OpenModConfig(modIndex)
     local mods = getModsForMenu()
     local mod = mods[modIndex]
@@ -140,11 +179,10 @@ function KCDUtils.UI:OpenModConfig(modIndex)
 
     for _, cfg in ipairs(GetConfigEntries(mod.config)) do
         if not cfg.hidden then
-
-            -- 🔹 ChoiceButton vorbereiten: gespeicherten Wert in Index übersetzen
+            -- ChoiceButton vorbereiten: gespeicherten Wert in Index übersetzen
             if cfg.type == "choice" then
                 if cfg.valueMap then
-                    for i, v in ipairs(cfg.choices) do
+                    for i, v in ipairs(cfg.choices or {}) do
                         if cfg.valueMap[i] == cfg.value then
                             cfg._selectedIndex = i
                             break
@@ -165,44 +203,22 @@ function KCDUtils.UI:OpenModConfig(modIndex)
                 UIAction.CallFunction("Menu", -1, "AddChoicesButton",
                     cfg.id, 0, uiText, cfg.tooltip or "", false
                 )
-
-                for idx, choice in ipairs(cfg.choices) do
+                for idx, choice in ipairs(cfg.choices or {}) do
                     local choiceText = GetVanillaChoiceUIText(choice) or "@ui_" .. mod.name .. "_" .. cfg.id .. "_" .. idx
                     UIAction.CallFunction("Menu", -1, "AddChoiceOption",
                         idx, cfg.id, 0, choiceText, "", false
                     )
                 end
-
-                -- 🔹 UI auf gespeicherten Index setzen
+                -- UI auf gespeicherten Index setzen
                 UIAction.CallFunction("Menu", -1, "SetChoice", cfg.id, 0, cfg._selectedIndex)
             end
         end
     end
 
-
     UIAction.CallFunction("Menu", -1, "AddBasicButton", "Reset", 1, "@ui_reset", "", false)
     UIAction.CallFunction("Menu", -1, "AddBasicButton", "Apply", 1, "@ui_apply", "", false)
     UIAction.CallFunction("Menu", -1, "AddBasicButton", "ModSettings", 1, "@ui_back", "", false)
     UIAction.CallFunction("Menu", -1, "ShowPage")
-end
-
-function KCDUtils.UI:OnApplySettings()
-    local mods = getModsForMenu()
-    local mod = mods[self._currentModIndex]
-    if not mod or not mod.config then return end
-
-    for _, cfg in ipairs(GetConfigEntries(mod.config)) do
-        if cfg.type == "value" then
-            cfg.value = UIAction.CallFunction("Menu", -1, "GetValue", cfg.id, 0)
-        elseif cfg.type == "choice" then
-            local choiceId = UIAction.CallFunction("Menu", -1, "GetChoice", cfg.id, 0)
-            cfg.value = cfg.valueMap and cfg.valueMap[choiceId] or choiceId
-            cfg._selectedIndex = choiceId
-        end
-    end
-
-    KCDUtils.Config.SaveAll(mod.name, mod.config)
-    System.LogAlways("[KCDUtils][OnApplySettings] All config values saved for mod " .. mod.name)
 end
 
 function KCDUtils.UI.UpdateConfigValue(id, value)
@@ -212,7 +228,6 @@ function KCDUtils.UI.UpdateConfigValue(id, value)
             for _, cfg in ipairs(GetConfigEntries(mod.config)) do
                 if cfg.id == id and cfg.type == "value" then
                     cfg.value = value
-                    -- ❌ nicht sofort speichern
                     return
                 end
             end
@@ -233,8 +248,6 @@ function KCDUtils.UI.UpdateConfigChoice(id, choiceId)
                     else
                         cfg.value = cfg.choices[luaIndex]
                     end
-
-                    -- ❌ nicht sofort in DB speichern
                     return
                 end
             end
@@ -242,42 +255,121 @@ function KCDUtils.UI.UpdateConfigChoice(id, choiceId)
     end
 end
 
-function KCDUtils.UI:OnResetSettings()
-    System.LogAlways("[KCDUtils][OnResetSettings] Resetting config to default values")
+function KCDUtils.UI:OnApplySettings()
     local mods = getModsForMenu()
-    System.LogAlways(("[KCDUtils][OnResetSettings] Found %d mods with config"):format(#mods))
     local mod = mods[self._currentModIndex]
-    System.LogAlways(("[KCDUtils][OnResetSettings] Current mod index: %s"):format(tostring(self._currentModIndex)))
-    if not mod or not mod.config then return end
-    System.LogAlways(("[KCDUtils][OnResetSettings] Resetting config for mod: %s"):format(mod.name))
+    if not mod or not mod.MenuConfig then return end
 
-    for _, cfg in ipairs(GetConfigEntries(mod.config)) do
-        System.LogAlways(("[KCDUtils][OnResetSettings] Processing: %s"):format(cfg.id))
+    System.LogAlways("[KCDUtils][OnApplySettings] Applying settings for mod: " .. (mod.Name or "unknown"))
 
+    for _, cfg in ipairs(GetConfigEntries(mod.MenuConfig)) do
         if cfg.type == "value" then
-            local defaultValue = cfg.defaultValue or cfg.value or 0
-            cfg.value = defaultValue
-            UIAction.CallFunction("Menu", -1, "SetValue", cfg.id, 0, defaultValue)
-            System.LogAlways(("[KCDUtils][OnResetSettings] SetValue: %s = %s"):format(cfg.id, tostring(defaultValue)))
-
-        elseif cfg.type == "choice" then
-            -- DefaultChoiceId sicherstellen
-            local defaultChoiceId = cfg.defaultChoiceId
-            if defaultChoiceId == nil then
-                -- Fallback auf erste Option
-                defaultChoiceId = 1
+            local val = UIAction.CallFunction("Menu", -1, "GetValue", cfg.id, 0)
+            cfg.value = val
+            mod.Config[cfg.id] = val
+            System.LogAlways(("[KCDUtils][OnApplySettings] Value applied: %s = %s"):format(cfg.id, tostring(val)))
+            if mod.db then
+                mod.db:Save(cfg.id, val)
             end
 
-            cfg.value = cfg.valueMap and cfg.valueMap[defaultChoiceId] or defaultChoiceId
-            cfg._selectedIndex = defaultChoiceId
+        elseif cfg.type == "choice" then
+            local choiceId = UIAction.CallFunction("Menu", -1, "GetChoice", cfg.id, 0)
+            if choiceId then
+                choiceId = choiceId + 1 -- Lua 1-based Index
+            end
 
-            UIAction.CallFunction("Menu", -1, "SetChoice", cfg.id, 0, defaultChoiceId)
-            System.LogAlways(("[KCDUtils][OnResetSettings] SetChoice: %s = index %d, mapped value = %s")
-                :format(cfg.id, defaultChoiceId, tostring(cfg.value)))
+            if cfg.apply then
+                -- Multi-Key Choice: cfg.apply aktualisiert mod.Config korrekt
+                cfg.apply(choiceId)
+                cfg._selectedIndex = choiceId -- UI-Index behalten
+                System.LogAlways(("[KCDUtils][OnApplySettings] Multi-Key choice applied: %s -> index %d"):format(cfg.id, choiceId))
+            else
+                -- Normale Choice
+                if cfg.valueMap then
+                    cfg.value = cfg.valueMap[choiceId]
+                else
+                    cfg.value = choiceId
+                end
+                cfg._selectedIndex = choiceId
+                mod.Config[cfg.id] = cfg.value
+                System.LogAlways(("[KCDUtils][OnApplySettings] Choice applied: %s = index %d"):format(cfg.id, choiceId))
+            end
         end
+    end
 
-        System.LogAlways(("[KCDUtils][OnResetSettings] Reset complete: %s = %s")
-            :format(cfg.id, tostring(cfg.value)))
+    -- Alle Änderungen in DB speichern
+    KCDUtils.Config.SaveAll(mod.Name, mod.Config)
+    System.LogAlways("[KCDUtils][OnApplySettings] All config values saved for mod " .. mod.Name)
+
+    -- Zurück zum Mod-Settings-Menü
+    self:OpenModSettings()
+end
+
+function KCDUtils.UI:OnResetSettings()
+    local mods = getModsForMenu()
+    local mod = mods[self._currentModIndex]
+    if not mod or not mod.MenuConfig then return end
+
+    System.LogAlways("[KCDUtils][OnResetSettings] Resetting config for mod: " .. (mod.Name or "unknown"))
+
+    -- 1. Mod.Config zurücksetzen auf Default-Werte
+    for key, cfg in pairs(mod.MenuConfig) do
+        if cfg.type == "value" then
+            mod.Config[key] = cfg.defaultValue or 0
+        elseif cfg.type == "choice" then
+            local defaultId = cfg.defaultChoiceId or 1
+            if cfg.keys then
+                local vals = cfg.valueMap[defaultId] or {}
+                for i, k in ipairs(cfg.keys) do
+                    mod.Config[k] = vals[i]
+                end
+            else
+                mod.Config[key] = cfg.valueMap and cfg.valueMap[defaultId] or defaultId
+            end
+        end
+    end
+
+    -- 2. MenuConfig aktualisieren aus Mod.Config
+    for key, cfg in pairs(mod.MenuConfig) do
+        if cfg.type == "value" then
+            cfg.value = mod.Config[key]
+            UIAction.CallFunction("Menu", -1, "SetValue", cfg.id, 0, cfg.value)
+            System.LogAlways(("[KCDUtils][OnResetSettings] Value reset: %s = %s"):format(cfg.id, tostring(cfg.value)))
+        elseif cfg.type == "choice" then
+            if cfg.keys then
+                for i, k in ipairs(cfg.keys) do
+                    cfg._selectedIndex = nil -- wird unten beim SetChoice neu gesetzt
+                end
+                -- Finde den Index in valueMap, der zu aktuellen Mod.Config passt
+                for i, choice in ipairs(cfg.choices or {}) do
+                    local vals = cfg.valueMap[i] or {}
+                    local match = true
+                    for j, k in ipairs(cfg.keys) do
+                        if mod.Config[k] ~= vals[j] then
+                            match = false
+                            break
+                        end
+                    end
+                    if match then
+                        cfg._selectedIndex = i
+                        break
+                    end
+                end
+            else
+                -- normale Choice
+                for i, val in ipairs(cfg.valueMap or cfg.choices) do
+                    if val == mod.Config[key] then
+                        cfg._selectedIndex = i
+                        break
+                    end
+                end
+            end
+
+            if cfg._selectedIndex then
+                UIAction.CallFunction("Menu", -1, "SetChoice", cfg.id, 0, cfg._selectedIndex)
+                System.LogAlways(("[KCDUtils][OnResetSettings] Choice reset: %s = index %d"):format(cfg.id, cfg._selectedIndex))
+            end
+        end
     end
 end
 
@@ -301,7 +393,9 @@ function KCDUtils.UI:OnMenuButtonEvent(elementName, instanceId, eventName, argTa
             self:ShowConfirmation("Apply", "@ui_ApplyChanges", "@ui_Yes", "@ui_No", function() self:OnApplySettings() end, function() end)
         elseif clickedButton == "Reset" then
             System.LogAlways("[KCDUtils][OnMenuButtonEvent] User requested config reset")
-            self:ShowConfirmation("Reset", "@ui_ResetDefault", "@ui_Yes", "@ui_No", function() self:OnResetSettings() end, function() end)
+            self:ShowConfirmation("Reset", "@ui_ResetDefault", "@ui_No", "@ui_Yes",
+            function() self:OnResetSettings() end,
+            function() end)
         end
     elseif eventName == "OnInteractiveChoice" then
         local id = tostring(argTable[0])
@@ -322,7 +416,7 @@ function KCDUtils.UI:ShowConfirmation(id, question, yesText, noText, callbackYes
 
     System.LogAlways("[KCDUtils][ShowConfirmation] Showing confirmation dialog: " .. tostring(id))
     self._confirmation = { id = id, yes = callbackYes, no = callbackNo }
-    UIAction.CallFunction("Menu", -1, "AddConfirmation", id, question, noText, yesText, 0, 1)
+    UIAction.CallFunction("Menu", -1, "AddConfirmation", id, question, yesText, noText,  0, 1)
 end
 
 function KCDUtils.UI:HandleConfirmation(id, answer)

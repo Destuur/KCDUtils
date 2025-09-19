@@ -123,10 +123,8 @@ function KCDUtils.RegisterMod(nameOrTable)
             if key == "DB"     then return dbs[tbl]     end
             if key == "On"     then return setupOnHandler(tbl) end
             return rawget(tbl, key)
-        end,
-        __newindex = function(tbl, key, val)
-            rawset(tbl, key, val)
         end
+        -- __newindex wird weggelassen! Default-Behavior reicht.
     })
 
     return mod
