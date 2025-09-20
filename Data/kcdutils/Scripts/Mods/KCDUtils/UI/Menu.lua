@@ -8,7 +8,7 @@ local buttonWidth = 196
 
 local function getVanillaChoiceUIText(choice)
     local lookup = { ["Yes"]="@ui_Yes", ["No"]="@ui_No", ["Off"]="@ui_off", ["On"]="@ui_on" }
-    return lookup[choice] or choice
+    return lookup[choice] or nil
 end
 
 local function mapBoolChoice(cfg, direction)
@@ -51,12 +51,13 @@ end
 function GetConfigEntries(modName)
     local entries = {}
     local menuConfig = KCDUtils.UI.Config and KCDUtils.UI.Config[modName]
-    if not menuConfig then
-        return entries
-    end
+    if not menuConfig then return entries end
 
-    for _, entry in pairs(menuConfig) do
-        table.insert(entries, entry)
+    for _, key in ipairs(menuConfig._order or {}) do
+        local entry = menuConfig[key]
+        if entry then
+            table.insert(entries, entry)
+        end
     end
 
     return entries
@@ -66,6 +67,7 @@ function KCDUtils.UI.MenuBuilder(mod, defs)
     if not mod or not defs then return end
 
     local menuConfig = {}
+    local order = {}
 
     for _, def in ipairs(defs) do
         local key = def.key
@@ -102,16 +104,20 @@ function KCDUtils.UI.MenuBuilder(mod, defs)
             end
         end
 
-        table.insert(menuConfig, entry)
+        menuConfig[key] = entry
+        table.insert(order, key)
     end
+
+    -- Reihenfolge speichern
+    menuConfig._order = order
 
     KCDUtils.UI.Config = KCDUtils.UI.Config or {}
     KCDUtils.UI.Config[mod.Name] = menuConfig
 
+    -- Mod.MenuConfig ebenfalls aktualisieren
     mod.MenuConfig = menuConfig
     return menuConfig
 end
-
 
 -- local function UpdateConfigFromUI(cfg)
 --     if cfg.type == "value" then
@@ -148,7 +154,7 @@ function KCDUtils.UI:OpenModOverview()
     end
 
     UIAction.CallFunction("Menu", -1, "ClearAll")
-    UIAction.CallFunction("Menu", -1, "PreparePage", buttonX, startY, maxButtons, "Mod Overview", buttonWidth)
+    UIAction.CallFunction("Menu", -1, "PreparePage", buttonX, startY, maxButtons, "@ui_mod_overview", buttonWidth)
 
     for i, mod in ipairs(mods) do
         local uiText = "@ui_" .. (mod.Name or "unknown")
@@ -177,15 +183,16 @@ function KCDUtils.UI:OpenModConfig(modIndex)
     for _, cfg in ipairs(GetConfigEntries(mod.Name)) do
         if not cfg.hidden then
             local uiText = "@ui_" .. mod.Name .. "_" .. cfg.id
+            local uiTooltip = "@ui_" .. mod.Name .. "_" .. cfg.id .. "_tooltip"
 
             if cfg.type == "value" then
-                UIAction.CallFunction("Menu", -1, "AddValueButton", cfg.id, 0, uiText, cfg.value, cfg.min, cfg.max, cfg.tooltip or "", false)
+                UIAction.CallFunction("Menu", -1, "AddValueButton", cfg.id, 0, uiText, cfg.value, cfg.min, cfg.max, uiTooltip, false)
             elseif cfg.type == "choice" then
                 -- Mapping Bool → Index, falls valueMap vorhanden
                 mapBoolChoice(cfg, "toIndex")
 
                 -- Button und Optionen hinzufügen
-                UIAction.CallFunction("Menu", -1, "AddChoicesButton", cfg.id, 0, uiText, cfg.tooltip or "", false)
+                UIAction.CallFunction("Menu", -1, "AddChoicesButton", cfg.id, 0, uiText, uiTooltip, false)
                 for idx, choice in ipairs(cfg.choices or {}) do
                     local choiceText = getVanillaChoiceUIText(choice) or "@ui_" .. mod.Name .. "_" .. cfg.id .. "_" .. idx
                     UIAction.CallFunction("Menu", -1, "AddChoiceOption", idx - 1, cfg.id, 0, choiceText, "", false)
@@ -278,7 +285,7 @@ end
 function KCDUtils.UI.UpdateConfigValue(id, value)
     local mods = getModsForMenu()
     for _, mod in ipairs(mods) do
-        for _, cfg in ipairs(GetConfigEntries(mod.MenuConfig)) do
+        for _, cfg in ipairs(GetConfigEntries(mod.Name)) do
             if cfg.id == id and cfg.type == "value" then
                 cfg.value = tonumber(string.format("%.0f", value))
                 return
@@ -290,7 +297,7 @@ end
 function KCDUtils.UI.UpdateConfigChoice(id, choiceId)
     local mods = getModsForMenu()
     for _, mod in ipairs(mods) do
-        for _, cfg in ipairs(GetConfigEntries(mod.MenuConfig)) do
+        for _, cfg in ipairs(GetConfigEntries(mod.Name)) do
             if cfg.id == id and cfg.type == "choice" then
                 cfg._selectedIndex = choiceId  -- UI liefert schon 0-basiert
                 local luaIndex = choiceId + 1  -- für valueMap/choices
