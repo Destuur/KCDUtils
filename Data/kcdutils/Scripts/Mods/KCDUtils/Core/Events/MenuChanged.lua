@@ -35,12 +35,12 @@ local function removeListener(sub)
 end
 
 --- Trigger-Funktion ohne Parameter
-function MC.Trigger()
+function MC.Trigger(arg)
     System.LogAlways("KCDUtils.Events.MenuChanged: Trigger called")
     for i = #MC.listeners, 1, -1 do
         local sub = MC.listeners[i]
         if not sub.isPaused then
-            local ok, err = pcall(sub.callback)
+            local ok, err = pcall(sub.callback, arg)  -- <-- Parameter übergeben
             if not ok then
                 KCDUtils.Logger.Factory("KCDUtils.Events.MenuChanged"):Error(
                     "Callback error: " .. tostring(err)

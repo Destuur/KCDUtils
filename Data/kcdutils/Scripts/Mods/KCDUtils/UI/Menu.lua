@@ -65,10 +65,10 @@ end
 function KCDUtils.UI.MenuBuilder(mod, defs)
     if not mod or not defs then return end
 
-    -- UI-eigener Config Table, unabhängig von mod.Config
     local menuConfig = {}
 
-    for key, def in pairs(defs) do
+    for _, def in ipairs(defs) do
+        local key = def.key
         local entry = {
             id = key,
             type = def.type,
@@ -77,38 +77,41 @@ function KCDUtils.UI.MenuBuilder(mod, defs)
         }
 
         if def.type == "value" then
-            entry.value = def.default or 0
+            entry.default = def.default or 0
+            entry.value = entry.default
             entry.min = def.min or 0
             entry.max = def.max or 100
         elseif def.type == "choice" then
             entry.choices = def.choices or {}
             entry.valueMap = def.valueMap
-            entry.value = def.default  -- direkt den Bool übernehmen
 
             if entry.valueMap then
+                entry.default = def.default or entry.valueMap[1]
+                entry.value = entry.default
                 for i, v in ipairs(entry.valueMap) do
                     if v == entry.value then
-                        entry._selectedIndex = i - 1 -- 0-basiert für SetChoice
+                        entry._selectedIndex = i - 1
                         break
                     end
                 end
                 if not entry._selectedIndex then entry._selectedIndex = 0 end
             else
-                entry._selectedIndex = (def.defaultChoiceId or 1) - 1
+                entry.defaultChoiceId = def.defaultChoiceId or 1
+                entry._selectedIndex = entry.defaultChoiceId - 1
+                entry.value = entry.choices[entry.defaultChoiceId] or entry.choices[1]
             end
-            entry.defaultChoiceId = def.defaultChoiceId or 1
         end
 
-        menuConfig[key] = entry
+        table.insert(menuConfig, entry)
     end
 
-    -- UI-spezifische Config speichern
     KCDUtils.UI.Config = KCDUtils.UI.Config or {}
     KCDUtils.UI.Config[mod.Name] = menuConfig
 
-    mod.MenuConfig = menuConfig -- optional, nur für Referenz im Menü
+    mod.MenuConfig = menuConfig
     return menuConfig
 end
+
 
 -- local function UpdateConfigFromUI(cfg)
 --     if cfg.type == "value" then
@@ -222,7 +225,7 @@ function KCDUtils.UI:OnApplySettings()
         if not cfg.hidden then
             if cfg.type == "value" then
                 local val = UIAction.CallFunction("Menu", -1, "GetValue", cfg.id, 0)
-                cfg.value = val
+                cfg.value = tonumber(string.format("%.0f", val))
                 if mod.DB then mod.DB:Set(cfg.id, val) end
             elseif cfg.type == "choice" then
                 -- 0-basiert direkt vom UI holen, nicht +1
@@ -234,27 +237,22 @@ function KCDUtils.UI:OnApplySettings()
         end
     end
 
-    KCDUtils.Events.MenuChanged.Trigger()
+    KCDUtils.Events.MenuChanged.Trigger(mod.MenuConfig)
     self:OpenModOverview()
 end
 
 function KCDUtils.UI:OnResetSettings()
-    System.LogAlways("[KCDUtils][OnResetSettings] Resetting settings...")
     local mods = getModsForMenu()
     local mod = mods[self._currentModIndex]
     if not mod or not mod.MenuConfig then 
-        System.LogAlways("[KCDUtils][OnResetSettings] No mod or MenuConfig found, aborting")
         return 
     end
 
-    System.LogAlways("[KCDUtils][OnResetSettings] Resetting settings for mod: " .. (mod.Name or "unknown"))
-
     for _, cfg in ipairs(GetConfigEntries(mod.Name)) do
         if cfg.type == "value" then
-            cfg.value = cfg.default or 0  -- default statt defaultValue
+            cfg.value = tonumber(string.format("%.0f", cfg.default or 0))
             UIAction.CallFunction("Menu", -1, "SetValue", cfg.id, 0, cfg.value)
             if mod.DB then mod.DB:Set(cfg.id, cfg.value) end
-            System.LogAlways(("[KCDUtils][OnResetSettings] Reset value: %s = %s"):format(cfg.id, tostring(cfg.value)))
 
         elseif cfg.type == "choice" then
             if cfg.valueMap then
@@ -274,7 +272,7 @@ function KCDUtils.UI:OnResetSettings()
         end
     end
 
-    System.LogAlways("[KCDUtils][OnResetSettings] All config values reset and saved for mod " .. mod.Name)
+    KCDUtils.Events.MenuChanged.Trigger(mod.MenuConfig)
 end
 
 function KCDUtils.UI.UpdateConfigValue(id, value)
@@ -282,7 +280,7 @@ function KCDUtils.UI.UpdateConfigValue(id, value)
     for _, mod in ipairs(mods) do
         for _, cfg in ipairs(GetConfigEntries(mod.MenuConfig)) do
             if cfg.id == id and cfg.type == "value" then
-                cfg.value = value
+                cfg.value = tonumber(string.format("%.0f", value))
                 return
             end
         end
@@ -370,11 +368,12 @@ function KCDUtils.UI:OnMenuButtonEvent(elementName, instanceId, eventName, argTa
 end
 
 function KCDUtils.UI:ShowConfirmation(id, question, yesText, noText, callbackYes, callbackNo)
+    -- Falls noch ein altes Fenster gesetzt ist, abbrechen und überschreiben
     if self._confirmation then
-        -- Ignoriere neue Confirmation, solange alte aktiv ist
-        System.LogAlways("[KCDUtils][ShowConfirmation] Confirmation already active, ignoring new request")
-        return
+        System.LogAlways("[KCDUtils][ShowConfirmation] Overwriting existing confirmation: " .. tostring(self._confirmation.id))
+        UIAction.CallFunction("Menu", -1, "RemoveConfirmation", self._confirmation.id)
     end
+
     self._confirmation = { id = id, yes = callbackYes, no = callbackNo }
     UIAction.CallFunction("Menu", -1, "AddConfirmation", id, question, yesText, noText, 0, 1)
 end
