@@ -4,7 +4,7 @@
     <name>KCD Utils</name>
     <description>Collection of Lua utilities and helper functions for modding Kingdom Come: Deliverance 2.</description>
     <author>Destuur</author>
-    <version>0.2.7</version>
+    <version>0.2.8</version>
     <created_on>2025-08-20</created_on>
     <modid>kcdutils</modid>
     <modifies_level>false</modifies_level>
