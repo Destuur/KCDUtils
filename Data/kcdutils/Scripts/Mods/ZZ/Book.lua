@@ -1,0 +1,37 @@
+-- [Function] Book.OnEnablePhysics | params: 0 | vararg: false
+-- [Function] Book.OnPropertyChange | params: 0 | vararg: false
+-- [Function] Book.Event_Use | params: 0 | vararg: false
+-- [Function] Book.UnregisterAiListener | params: 0 | vararg: false
+-- [Function] Book.ResetChild | params: 0 | vararg: false
+-- [Function] Book.IsCrossCenteringEnabled | params: 0 | vararg: false
+-- [Function] Book.SetupTrigger | params: 0 | vararg: false
+-- [Function] Book.OnUsedHold | params: 0 | vararg: false
+-- [Function] Book.OnLevelLoaded | params: 0 | vararg: false
+-- [Function] Book.GetActions | params: 0 | vararg: false
+-- [Function] Book.Use | params: 0 | vararg: false
+-- [Table] Book.FlowEvents
+-- [Table] Book.FlowEvents.Inputs
+-- [Table] Book.FlowEvents.Inputs.Use
+-- [Function] Book.FlowEvents.Inputs.Use.1 | params: 0 | vararg: false
+-- [Table] Book.FlowEvents.Inputs.User
+-- [Function] Book.FlowEvents.Inputs.User.1 | params: 0 | vararg: false
+-- [Table] Book.FlowEvents.Outputs
+-- [Table] Book.aiListeners
+-- [Function] Book.SetInteractiveCollisionType | params: 0 | vararg: false
+-- [Function] Book.GetUsableName | params: 0 | vararg: false
+-- [Function] Book.Reset | params: 0 | vararg: false
+-- [Function] Book.OnUsed | params: 0 | vararg: false
+-- [Function] Book.LoadModel | params: 0 | vararg: false
+-- [Function] Book.Event_User | params: 0 | vararg: false
+-- [Table] Book.__index
+--   (Metatable __index of Book.__index)
+-- [Table] Book.Editor
+-- [Function] Book.OnSave | params: 0 | vararg: false
+-- [Function] Book.PhysicalizeThis | params: 0 | vararg: false
+-- [Function] Book.OnLoad | params: 0 | vararg: false
+-- [Function] Book.OnReset | params: 0 | vararg: false
+-- [Function] Book.IsUsable | params: 0 | vararg: false
+-- [Function] Book.GetLinkedSmartObject | params: 0 | vararg: false
+-- [Function] Book.IsUsableMsgChanged | params: 0 | vararg: false
+-- [Function] Book.SetUsable | params: 0 | vararg: false
+-- [Function] Book.RegisterAiListener | params: 0 | vararg: false

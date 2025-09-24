@@ -1,0 +1,21 @@
+{
+  "Lua.diagnostics.globals": [
+    "System",
+    "Script",
+    "UIAction",
+    "player",
+    "Calendar",
+    "ScriptLoader",
+    "Entity",
+    "EnvironmentModule",
+    "Physics",
+    "ent_all",
+    "AudioUtils"
+  ],
+  "Lua.diagnostics.disable": [
+    "undefined-doc-name",
+    "redundant-parameter",
+    "missing-fields",
+    "ambiguity-1"
+  ]
+}

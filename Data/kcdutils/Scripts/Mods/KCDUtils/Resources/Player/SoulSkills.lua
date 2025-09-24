@@ -1,0 +1,43 @@
+KCDUtils = KCDUtils or {}
+--- @class KCDUtilsResources
+KCDUtils.Resources = KCDUtils.Resources or {}
+
+---@class KCDUtilsSoulSkills
+-- Soul-related skills
+KCDUtils.Resources.SoulSkills = {
+    Stealth                = "stealth",
+    HorseRiding            = "horse_riding",
+    Fencing                = "fencing",
+    Bard                   = "bard",
+    Thievery               = "thievery",
+    PickpocketingObsolete  = "pickpocketing_obsolete",
+    Alchemy                = "alchemy",
+    Cooking                = "cooking",
+    Craftsmanship          = "craftsmanship",
+    SmithingObsolete       = "smithing_obsolete",
+    Fishing                = "fishing",
+    Mining                 = "mining",
+    FirstAid               = "first_aid",
+    Drinking               = "drinking",
+    Survival               = "survival",
+    Defense                = "defense",
+    WeaponSword            = "weapon_sword",
+    HeavyWeapons           = "heavy_weapons",
+    WeaponBowObsolete      = "weapon_bow_obsolete",
+    Marksmanship           = "marksmanship",
+    WeaponShield           = "weapon_shield",
+    WeaponMaceObsolete     = "weapon_mace_obsolete",
+    WeaponDagger           = "weapon_dagger",
+    WeaponLarge            = "weapon_large",
+    WeaponUnarmed          = "weapon_unarmed",
+    HerbalismObsolete      = "herbalism_obsolete",
+    Scholarship            = "scholarship",
+    Tailoring              = "tailoring",
+    Armourer               = "armourer",
+    WeaponSmithing         = "weaponsmithing",
+    Shoemaking             = "shoemaking",
+    Gunsmithing            = "gunsmithing",
+    Bowyery                = "bowyery",
+    Gambling               = "gambling",
+    Houndmaster            = "houndmaster",
+}

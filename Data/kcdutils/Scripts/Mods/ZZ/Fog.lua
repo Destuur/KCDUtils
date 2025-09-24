@@ -1,0 +1,12 @@
+-- [Function] Fog.OnLeaveArea | params: 0 | vararg: false
+-- [Function] Fog.OnUpdate | params: 0 | vararg: false
+-- [Function] Fog.OnPropertyChange | params: 0 | vararg: false
+-- [Function] Fog.OnEnterArea | params: 0 | vararg: false
+-- [Function] Fog.OnReset | params: 0 | vararg: false
+-- [Function] Fog.OnTimer | params: 0 | vararg: false
+-- [Table] Fog.Editor
+-- [Function] Fog.SetFog | params: 0 | vararg: false
+-- [Function] Fog.OnShutDown | params: 0 | vararg: false
+-- [Function] Fog.OnLoad | params: 0 | vararg: false
+-- [Function] Fog.ResetValues | params: 0 | vararg: false
+-- [Function] Fog.OnSave | params: 0 | vararg: false

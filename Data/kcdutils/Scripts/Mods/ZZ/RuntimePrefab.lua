@@ -1,0 +1,12 @@
+-- [Function] RuntimePrefab.OnSpawn | params: 0 | vararg: false
+-- [Function] RuntimePrefab.CreateOnLoad | params: 0 | vararg: false
+-- [Function] RuntimePrefab.OnDestroy | params: 0 | vararg: false
+-- [Table] RuntimePrefab.Properties
+-- [Function] RuntimePrefab.OnInit | params: 0 | vararg: false
+-- [Function] RuntimePrefab.OnUnHidden | params: 0 | vararg: false
+-- [Table] RuntimePrefab.Editor
+-- [Function] RuntimePrefab.OnReset | params: 0 | vararg: false
+-- [Function] RuntimePrefab.OnHidden | params: 0 | vararg: false
+-- [Function] RuntimePrefab.Reset | params: 0 | vararg: false
+-- [Function] RuntimePrefab.Spawn | params: 0 | vararg: false
+-- [Function] RuntimePrefab.OnMove | params: 0 | vararg: false

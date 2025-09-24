@@ -1,0 +1,46 @@
+-- [Function] Lockpickable.OnSpawn | params: 0 | vararg: false
+-- [Table] Lockpickable.Properties
+-- [Table] Lockpickable.Properties.Lock
+-- [Table] Lockpickable.Properties.Physics
+-- [Table] Lockpickable.Properties.Phase
+-- [Function] Lockpickable.SetBeingUsedByPlayer | params: 0 | vararg: false
+-- [Function] Lockpickable.Event_UnHide | params: 0 | vararg: false
+-- [Function] Lockpickable.GetLockDifficulty | params: 0 | vararg: false
+-- [Table] Lockpickable.Client
+-- [Function] Lockpickable.OnPropertyChange | params: 0 | vararg: false
+-- [Function] Lockpickable.DoStopSound | params: 0 | vararg: false
+-- [Function] Lockpickable.Event_Unlock | params: 0 | vararg: false
+-- [Table] Lockpickable.Editor
+-- [Function] Lockpickable.GetActions | params: 0 | vararg: false
+-- [Table] Lockpickable.FlowEvents
+-- [Table] Lockpickable.FlowEvents.Outputs
+-- [Table] Lockpickable.FlowEvents.Inputs
+-- [Table] Lockpickable.FlowEvents.Inputs.UnHide
+-- [Function] Lockpickable.FlowEvents.Inputs.UnHide.1 | params: 0 | vararg: false
+-- [Table] Lockpickable.FlowEvents.Inputs.Hide
+-- [Function] Lockpickable.FlowEvents.Inputs.Hide.1 | params: 0 | vararg: false
+-- [Table] Lockpickable.FlowEvents.Inputs.Unlock
+-- [Function] Lockpickable.FlowEvents.Inputs.Unlock.1 | params: 0 | vararg: false
+-- [Table] Lockpickable.FlowEvents.Inputs.Lock
+-- [Function] Lockpickable.FlowEvents.Inputs.Lock.1 | params: 0 | vararg: false
+-- [Function] Lockpickable.Unlock | params: 0 | vararg: false
+-- [Function] Lockpickable.GetUsableEvent | params: 0 | vararg: false
+-- [Function] Lockpickable.Lock | params: 0 | vararg: false
+-- [Function] Lockpickable.OnUsed | params: 0 | vararg: false
+-- [Table] Lockpickable.__index
+--   (Metatable __index of Lockpickable.__index)
+-- [Table] Lockpickable.Server
+-- [Function] Lockpickable.SetBeingUsedByNPC | params: 0 | vararg: false
+-- [Function] Lockpickable.OnSave | params: 0 | vararg: false
+-- [Function] Lockpickable.SetInteractive | params: 0 | vararg: false
+-- [Function] Lockpickable.OnReset | params: 0 | vararg: false
+-- [Function] Lockpickable.Event_Hide | params: 0 | vararg: false
+-- [Function] Lockpickable.IsUsable | params: 0 | vararg: false
+-- [Function] Lockpickable.Event_Lock | params: 0 | vararg: false
+-- [Function] Lockpickable.IsUsableMsgChanged | params: 0 | vararg: false
+-- [Function] Lockpickable.DoPlaySound | params: 0 | vararg: false
+-- [Function] Lockpickable.OnUsedHold | params: 0 | vararg: false
+-- [Function] Lockpickable.OnLoad | params: 0 | vararg: false
+-- [Function] Lockpickable.IsUsableHold | params: 0 | vararg: false
+-- [Function] Lockpickable.PhysicalizeThis | params: 0 | vararg: false
+-- [Function] Lockpickable.Reset | params: 0 | vararg: false

@@ -1,0 +1,39 @@
+-- [Function] InteractionTrigger._GetSendTargets | params: 0 | vararg: false
+-- [Function] InteractionTrigger.OpenInventory | params: 0 | vararg: false
+-- [Function] InteractionTrigger.OnInventoryItemUsed | params: 0 | vararg: false
+-- [Function] InteractionTrigger.OnPropertyChange | params: 0 | vararg: false
+-- [Function] InteractionTrigger.OnEditorSetGameMode | params: 0 | vararg: false
+-- [Function] InteractionTrigger.UpdateMaterial | params: 0 | vararg: false
+-- [Function] InteractionTrigger.SetUseMessage | params: 0 | vararg: false
+-- [Table] InteractionTrigger.Editor
+-- [Function] InteractionTrigger.IsUsableHold | params: 0 | vararg: false
+-- [Function] InteractionTrigger.IsEnabled | params: 0 | vararg: false
+-- [Function] InteractionTrigger.GetActions | params: 0 | vararg: false
+-- [Function] InteractionTrigger.IsEnabledBySoulAbility | params: 0 | vararg: false
+-- [Function] InteractionTrigger.SetAvailable | params: 0 | vararg: false
+-- [Function] InteractionTrigger.IsEnabledByScriptPerk | params: 0 | vararg: false
+-- [Function] InteractionTrigger.ResetHoldMessage | params: 0 | vararg: false
+-- [Function] InteractionTrigger.IsEnabledByProperties | params: 0 | vararg: false
+-- [Function] InteractionTrigger._CheckDialog | params: 0 | vararg: false
+-- [Function] InteractionTrigger.PhysicalizeThis | params: 0 | vararg: false
+-- [Function] InteractionTrigger.OnUsed | params: 0 | vararg: false
+-- [Function] InteractionTrigger.ReportUse | params: 0 | vararg: false
+-- [Table] InteractionTrigger.__index
+--   (Metatable __index of InteractionTrigger.__index)
+-- [Function] InteractionTrigger.NeedSerialize | params: 0 | vararg: false
+-- [Function] InteractionTrigger.GetHintHold | params: 0 | vararg: false
+-- [Function] InteractionTrigger.OnSave | params: 0 | vararg: false
+-- [Function] InteractionTrigger.UserNoItem | params: 0 | vararg: false
+-- [Function] InteractionTrigger.OnLoad | params: 0 | vararg: false
+-- [Function] InteractionTrigger.OnReset | params: 0 | vararg: false
+-- [Function] InteractionTrigger.OnUsedHold | params: 0 | vararg: false
+-- [Function] InteractionTrigger.IsUsable | params: 0 | vararg: false
+-- [Function] InteractionTrigger.IsEnabledFromQuestSystem | params: 0 | vararg: false
+-- [Function] InteractionTrigger.OnAction | params: 0 | vararg: false
+-- [Function] InteractionTrigger.SetAvailableHold | params: 0 | vararg: false
+-- [Function] InteractionTrigger.IsActionAvailable | params: 0 | vararg: false
+-- [Function] InteractionTrigger.ResetUseMessage | params: 0 | vararg: false
+-- [Function] InteractionTrigger.OnInventoryClosed | params: 0 | vararg: false
+-- [Function] InteractionTrigger.SetHoldMessage | params: 0 | vararg: false
+-- [Function] InteractionTrigger.GetHint | params: 0 | vararg: false
+-- [Function] InteractionTrigger.IsEnabledHold | params: 0 | vararg: false

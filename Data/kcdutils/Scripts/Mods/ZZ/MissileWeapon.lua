@@ -1,0 +1,29 @@
+-- [Function] MissileWeapon.GetUsableName | params: 0 | vararg: false
+-- [Function] MissileWeapon.PhysicalizeThis | params: 0 | vararg: false
+-- [Function] MissileWeapon.SetInteractiveCollisionType | params: 0 | vararg: false
+-- [Table] MissileWeapon.__super
+-- [Function] MissileWeapon.__super.GetUsableName | params: 0 | vararg: false
+-- [Function] MissileWeapon.__super.PhysicalizeThis | params: 0 | vararg: false
+-- [Table] MissileWeapon.__super.Properties
+-- [Table] MissileWeapon.__super.Properties.Script
+-- [Function] MissileWeapon.__super.IsCrossCenteringEnabled | params: 0 | vararg: false
+-- [Function] MissileWeapon.__super.SetInteractiveCollisionType | params: 0 | vararg: false
+-- [Function] MissileWeapon.__super.Use | params: 0 | vararg: false
+-- [Function] MissileWeapon.__super.OnEnablePhysics | params: 0 | vararg: false
+-- [Function] MissileWeapon.__super.OnLevelLoaded | params: 0 | vararg: false
+-- [Function] MissileWeapon.__super.OnUsedHold | params: 0 | vararg: false
+-- [Function] MissileWeapon.__super.OnUsed | params: 0 | vararg: false
+-- [Function] MissileWeapon.__super.GetActions | params: 0 | vararg: false
+-- [Table] MissileWeapon.__super.__index
+--   (Metatable __index of MissileWeapon.__super.__index)
+-- [Function] MissileWeapon.__super.OnPropertyChange | params: 0 | vararg: false
+--   (Metatable __index of MissileWeapon.__super)
+-- [Table] MissileWeapon.Properties
+-- [Table] MissileWeapon.Properties.Script
+-- [Function] MissileWeapon.IsCrossCenteringEnabled | params: 0 | vararg: false
+-- [Function] MissileWeapon.OnPropertyChange | params: 0 | vararg: false
+-- [Function] MissileWeapon.OnEnablePhysics | params: 0 | vararg: false
+-- [Function] MissileWeapon.OnLevelLoaded | params: 0 | vararg: false
+-- [Function] MissileWeapon.OnUsedHold | params: 0 | vararg: false
+-- [Function] MissileWeapon.OnUsed | params: 0 | vararg: false
+-- [Function] MissileWeapon.GetActions | params: 0 | vararg: false
