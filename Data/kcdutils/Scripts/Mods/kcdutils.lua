@@ -156,9 +156,9 @@ function KCDUtils.OnGameplayStarted()
         end
 
         -- Menü erst jetzt mit DB-Werten bauen
-        local reg = KCDUtils.UI._registeredMenus and KCDUtils.UI._registeredMenus[modName]
+        local reg = KCDUtils.Menu._registeredMenus and KCDUtils.Menu._registeredMenus[modName]
         if reg then
-            KCDUtils.UI.BuildMenuWithDB(modTable)
+            KCDUtils.Menu.BuildWithDB(modTable)
         end
 
         if type(modTable.OnGameplayStarted) == "function" then

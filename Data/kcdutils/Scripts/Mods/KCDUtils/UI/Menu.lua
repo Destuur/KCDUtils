@@ -1,5 +1,5 @@
-KCDUtils.UI = KCDUtils.UI or {}
-KCDUtils.UI._menuConfigs = KCDUtils.UI._menuConfigs or {}
+KCDUtils.Menu = KCDUtils.Menu or {}
+KCDUtils.Menu._menuConfigs = KCDUtils.Menu._menuConfigs or {}
 
 local buttonX = 1500
 local startY = 380
@@ -8,7 +8,7 @@ local buttonWidth = 196
 
 function GetConfigEntries(modName)
     local entries = {}
-    local menuConfig = KCDUtils.UI.Config and KCDUtils.UI.Config[modName]
+    local menuConfig = KCDUtils.Menu.Config and KCDUtils.Menu.Config[modName]
     if not menuConfig then return entries end
 
     for _, key in ipairs(menuConfig._order or {}) do
@@ -54,11 +54,11 @@ local function mapBoolChoice(cfg, direction)
     end
 end
 
-function KCDUtils.UI.RegisterMenu(mod, menuDefs)
+function KCDUtils.Menu.RegisterMod(mod, menuDefs)
     if not mod or not menuDefs then return end
 
-    KCDUtils.UI._registeredMenus = KCDUtils.UI._registeredMenus or {}
-    KCDUtils.UI._registeredMenus[mod.Name] = {
+    KCDUtils.Menu._registeredMenus = KCDUtils.Menu._registeredMenus or {}
+    KCDUtils.Menu._registeredMenus[mod.Name] = {
         mod = mod,
         defs = menuDefs
     }
@@ -82,9 +82,9 @@ local function getModsForMenu()
     for _, mod in pairs(KCDUtils.RegisteredMods or {}) do
         if mod.Config then
             if not mod.MenuConfig then
-                local reg = KCDUtils.UI._registeredMenus and KCDUtils.UI._registeredMenus[mod.Name]
+                local reg = KCDUtils.Menu._registeredMenus and KCDUtils.Menu._registeredMenus[mod.Name]
                 if reg and mod.DB then
-                    KCDUtils.UI.BuildMenuWithDB(mod, reg.defs)
+                    KCDUtils.Menu.BuildWithDB(mod, reg.defs)
                 end
             end
             table.insert(mods, mod)
@@ -93,12 +93,12 @@ local function getModsForMenu()
     return mods
 end
 
-function KCDUtils.UI.BuildMenuWithDB(mod)
+function KCDUtils.Menu.BuildWithDB(mod)
     if not mod or not mod.DB then
         return
     end
 
-    local reg = KCDUtils.UI._registeredMenus and KCDUtils.UI._registeredMenus[mod.Name]
+    local reg = KCDUtils.Menu._registeredMenus and KCDUtils.Menu._registeredMenus[mod.Name]
     if not reg then return end
 
     -- Defaults vorbereiten + Def-Lookup
@@ -134,11 +134,11 @@ function KCDUtils.UI.BuildMenuWithDB(mod)
         end
     end
 
-    -- MenuBuilder mit Definitions und DB-Werten
-    mod.MenuConfig = KCDUtils.UI.MenuBuilder(mod, reg.defs)
+    -- Create mit Definitions und DB-Werten
+    mod.MenuConfig = KCDUtils.Menu.Create(mod, reg.defs)
 end
 
-function KCDUtils.UI.MenuBuilder(mod, defs)
+function KCDUtils.Menu.Create(mod, defs)
     if not mod or not defs then return end
 
     local db = KCDUtils.DB.Factory(mod.Name)
@@ -196,8 +196,8 @@ function KCDUtils.UI.MenuBuilder(mod, defs)
     end
 
     menuConfig._order = order
-    KCDUtils.UI.Config = KCDUtils.UI.Config or {}
-    KCDUtils.UI.Config[mod.Name] = menuConfig
+    KCDUtils.Menu.Config = KCDUtils.Menu.Config or {}
+    KCDUtils.Menu.Config[mod.Name] = menuConfig
     mod.MenuConfig = menuConfig
     return menuConfig
 end
@@ -229,7 +229,7 @@ end
 -- Mod-Übersicht
 -- ==========================
 -- Mod-Übersicht öffnen
-function KCDUtils.UI:OpenModOverview()
+function KCDUtils.Menu:OpenModOverview()
     local mods = getModsForMenu()
     if not mods or #mods == 0 then
         System.LogAlways("[KCDUtils][OpenModOverview] No mods found, aborting")
@@ -248,13 +248,13 @@ function KCDUtils.UI:OpenModOverview()
     UIAction.CallFunction("Menu", -1, "ShowPage")
 end
 
-function KCDUtils.UI:OpenModConfig(modIndex)
+function KCDUtils.Menu:OpenModConfig(modIndex)
     local mods = getModsForMenu()
     local mod = mods[modIndex]
     if not mod or not mod.Name then return end
 
     self._currentModIndex = modIndex
-    local menuConfig = KCDUtils.UI.Config and KCDUtils.UI.Config[mod.Name]
+    local menuConfig = KCDUtils.Menu.Config and KCDUtils.Menu.Config[mod.Name]
     if not menuConfig then
         System.LogAlways("[KCDUtils][OpenModConfig] No UI config found for mod: " .. tostring(mod.Name))
         return
@@ -295,13 +295,13 @@ function KCDUtils.UI:OpenModConfig(modIndex)
         end
     end
 
-    UIAction.CallFunction("Menu", -1, "AddBasicButton", "Reset", 1, "@ui_reset", "", false)
-    UIAction.CallFunction("Menu", -1, "AddBasicButton", "Apply", 1, "@ui_apply", "", false)
+    UIAction.CallFunction("Menu", -1, "AddBasicButton", "ModApply", 1, "@ui_apply", "", false)
+    UIAction.CallFunction("Menu", -1, "AddBasicButton", "ModReset", 1, "@ui_reset", "", false)
     UIAction.CallFunction("Menu", -1, "AddBasicButton", "Back", 1, "@ui_back", "", false)
     UIAction.CallFunction("Menu", -1, "ShowPage")
 end
 
-function KCDUtils.UI:OnApplySettings()
+function KCDUtils.Menu:OnApplySettings()
     local mods = getModsForMenu()
     local mod = mods[self._currentModIndex]
     if not mod then
@@ -339,7 +339,7 @@ function KCDUtils.UI:OnApplySettings()
     self:OpenModOverview()
 end
 
-function KCDUtils.UI:OnResetSettings()
+function KCDUtils.Menu:OnResetSettings()
     local mods = getModsForMenu()
     local mod = mods[self._currentModIndex]
     if not mod or not mod.MenuConfig then 
@@ -373,7 +373,7 @@ function KCDUtils.UI:OnResetSettings()
     KCDUtils.Events.MenuChanged.Trigger(mod.MenuConfig)
 end
 
-function KCDUtils.UI.UpdateConfigValue(id, value)
+function KCDUtils.Menu.UpdateConfigValue(id, value)
     local mods = getModsForMenu()
     for _, mod in ipairs(mods) do
         for _, cfg in ipairs(GetConfigEntries(mod.Name)) do
@@ -385,7 +385,7 @@ function KCDUtils.UI.UpdateConfigValue(id, value)
     end
 end
 
-function KCDUtils.UI.UpdateConfigChoice(id, choiceId)
+function KCDUtils.Menu.UpdateConfigChoice(id, choiceId)
     local mods = getModsForMenu()
     for _, mod in ipairs(mods) do
         for _, cfg in ipairs(GetConfigEntries(mod.Name)) do
@@ -405,19 +405,56 @@ function KCDUtils.UI.UpdateConfigChoice(id, choiceId)
     end
 end
 
-function KCDUtils.UI:OnMenuButtonEvent(elementName, instanceId, eventName, argTable)
-    if eventName == "OnButton" then
-        local clickedButton = tostring(argTable[0])
-        if clickedButton == "Settings" and not KCDUtils.HasGameStarted then
-        -- Button "ModSettings" deaktivieren
-        UIAction.CallFunction("Menu", -1, "SetDisable", "ModSettings", 0, "@ui_game_not_started", true)
+function KCDUtils.Menu:OnMenuButtonEvent(elementName, instanceId, eventName, argTable)
+    -- Nur Events beachten, die uns interessieren
+    if eventName ~= "OnButton" and eventName ~= "OnInteractiveChoice" and eventName ~= "OnInteractiveValue" then
+        return
+    end
+
+    local id = tostring(argTable[0] or "")
+
+    -- 🛑 Schritt 1: Zulässige IDs prüfen
+    local allowedButtons = {
+        Settings = true,
+        ModSettings = true,
+        Back = true,
+        ModApply = true,
+        ModReset = true,
+    }
+
+    local isAllowed =
+        allowedButtons[id] or
+        id:match("^mod_%d+$") -- Buttons wie "mod_1", "mod_2", ...
+    
+    -- Wenn es ein Config-Event ist (Choice/Value), prüfen ob ID zu einem Mod gehört
+    if not isAllowed and (eventName == "OnInteractiveChoice" or eventName == "OnInteractiveValue") then
+        local mods = getModsForMenu()
+        for _, mod in ipairs(mods) do
+            for _, cfg in ipairs(GetConfigEntries(mod.Name)) do
+                if cfg.id == id then
+                    isAllowed = true
+                    break
+                end
+            end
+            if isAllowed then break end
         end
-        if clickedButton == "ModSettings" then
+    end
+
+    if not isAllowed then
+        -- Fremde Events (Vanilla UI) → ignorieren
+        return
+    end
+
+    -- ✅ Schritt 2: Ab hier nur deine bestehende Logik ausführen
+    if eventName == "OnButton" then
+        if id == "Settings" and not KCDUtils.HasGameStarted then
+            UIAction.CallFunction("Menu", -1, "SetDisable", "ModSettings", 0, "@ui_game_not_started", true)
+        elseif id == "ModSettings" then
             self:OpenModOverview()
-        elseif clickedButton:match("^mod_%d+$") then
-            local modIndex = tonumber(clickedButton:match("%d+"))
+        elseif id:match("^mod_%d+$") then
+            local modIndex = tonumber(id:match("%d+"))
             self:OpenModConfig(modIndex)
-        elseif clickedButton == "Back" then
+        elseif id == "Back" then
             if self._currentModIndex then
                 local mods = getModsForMenu()
                 local mod = mods[self._currentModIndex]
@@ -443,33 +480,32 @@ function KCDUtils.UI:OnMenuButtonEvent(elementName, instanceId, eventName, argTa
                     self._currentModIndex = nil
                     self:OpenModOverview()
                 end
-           else
+            else
                 self:OpenModOverview()
             end
-        elseif clickedButton == "Apply" then
-            self:ShowConfirmation("Apply", "@ui_ApplyChanges", "@ui_Yes", "@ui_No",
-                function() self:OnApplySettings() end,
-                function() end
-            )
-        elseif clickedButton == "Reset" then
-            System.LogAlways("[KCDUtils][OnMenuButtonEvent] Reset button clicked")
-            self:ShowConfirmation("Reset", "@ui_ResetDefault", "@ui_No", "@ui_Yes",
-                function() end,
-                function() self:OnResetSettings() end
-            )
-        end
+    elseif id == "ModApply" then
+        self:ShowConfirmation("ModApply", "@ui_ApplyChanges", "@ui_Yes", "@ui_No",
+            function() self:OnApplySettings() end,
+            function() end
+        )
+    elseif id == "ModReset" then
+        System.LogAlways("[KCDUtils][OnMenuButtonEvent] ModReset button clicked")
+        self:ShowConfirmation("ModReset", "@ui_ResetDefault", "@ui_No", "@ui_Yes",
+            function() end,
+            function() self:OnResetSettings() end
+        )
+    end
     elseif eventName == "OnInteractiveChoice" then
-        local id = tostring(argTable[0])
         local choiceId = tonumber(argTable[1])
         self:UpdateConfigChoice(id, choiceId)
     elseif eventName == "OnInteractiveValue" then
-        local id = tostring(argTable[0])
         local value = tonumber(argTable[1])
         self:UpdateConfigValue(id, value)
     end
 end
 
-function KCDUtils.UI:ShowConfirmation(id, question, yesText, noText, callbackYes, callbackNo)
+
+function KCDUtils.Menu:ShowConfirmation(id, question, yesText, noText, callbackYes, callbackNo)
     -- Falls noch ein altes Fenster gesetzt ist, abbrechen und überschreiben
     if self._confirmation then
         System.LogAlways("[KCDUtils][ShowConfirmation] Overwriting existing confirmation: " .. tostring(self._confirmation.id))
@@ -480,7 +516,7 @@ function KCDUtils.UI:ShowConfirmation(id, question, yesText, noText, callbackYes
     UIAction.CallFunction("Menu", -1, "AddConfirmation", id, question, yesText, noText, 0, 1)
 end
 
-function KCDUtils.UI:HandleConfirmation(id, answer)
+function KCDUtils.Menu:HandleConfirmation(id, answer)
     System.LogAlways(("[HandleConfirmation] id=%s, answer=%s"):format(id, tostring(answer)))
     if not self._confirmation or self._confirmation.id ~= id then return end
     local cbYes, cbNo = self._confirmation.yes, self._confirmation.no
@@ -491,7 +527,7 @@ function KCDUtils.UI:HandleConfirmation(id, answer)
     elseif answer == 1 and cbNo then cbNo() end
 end
 
-function KCDUtils.UI:OnConfirmationEvent(elementName, instanceId, eventName, argTable)
+function KCDUtils.Menu:OnConfirmationEvent(elementName, instanceId, eventName, argTable)
     if eventName == "OnConfirm" then
         local id, res = tostring(argTable[0]), tonumber(argTable[1])
         self:HandleConfirmation(id, res)
@@ -499,7 +535,7 @@ function KCDUtils.UI:OnConfirmationEvent(elementName, instanceId, eventName, arg
 end
 
 -- Listener registrieren
-function KCDUtils.UI:RegisterMenuListener()
+function KCDUtils.Menu:RegisterModListener()
     if UIAction and UIAction.RegisterElementListener then
         UIAction.RegisterElementListener(self, "Menu", -1, "", "OnMenuButtonEvent")
         UIAction.RegisterElementListener(self, "Menu", -1, "", "OnConfirmationEvent")
@@ -507,9 +543,9 @@ function KCDUtils.UI:RegisterMenuListener()
 end
 
 local function InitializeUI()
-    if not KCDUtils.UI._initiated then
-        KCDUtils.UI._initiated = true
-        KCDUtils.UI:RegisterMenuListener()
+    if not KCDUtils.Menu._initiated then
+        KCDUtils.Menu._initiated = true
+        KCDUtils.Menu:RegisterModListener()
     end
 end
 
