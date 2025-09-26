@@ -113,14 +113,14 @@ jobs:
           mkdir -p "$PAK_DIR"
           
           # Alte .pak löschen
-          rm -f "KCDUtils/Data/kcdutils.pak"
+          rm -f "Data/kcdutils.pak"
 
-          export SOURCE_DIR="KCDUtils/Data/kcdutils"
+          export SOURCE_DIR="Data/kcdutils"
           export PAK_FILE="$PAK_DIR/kcdutils.pak"
 
           if [ ! -d "$SOURCE_DIR" ]; then
             echo "ERROR: $SOURCE_DIR does not exist!"
-            ls -R KCDUtils/Data
+            ls -R Data
             exit 1
           fi
 
@@ -138,7 +138,7 @@ jobs:
                       archive.write(abs_path, rel_path)
           EOF
 
-          cp "$PAK_FILE" "KCDUtils/Data/kcdutils.pak"
+          cp "$PAK_FILE" "Data/kcdutils.pak"
 
           shopt -s dotglob
           mkdir -p "$TMP_DIR/_kcdutils"
