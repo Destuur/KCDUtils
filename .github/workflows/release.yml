@@ -106,57 +106,52 @@ jobs:
           git push origin HEAD:main
           git push origin --tags
 
-          - name: Build .pak and prepare release ZIP
-            run: |
-              TMP_DIR=temp__kcdutils
-              PAK_DIR="$TMP_DIR/_kcdutils/Data"
-              mkdir -p "$PAK_DIR"
+      - name: Build .pak and prepare release ZIP
+        run: |
+          TMP_DIR=temp__kcdutils
+          PAK_DIR="$TMP_DIR/_kcdutils/Data"
+          mkdir -p "$PAK_DIR"
           
-              # Alte .pak löschen, falls vorhanden
-              rm -f "KCDUtils/Data/kcdutils.pak"
-          
-              # Environment-Variablen für Python
-              export SOURCE_DIR="KCDUtils/Data/kcdutils"
-              export PAK_FILE="$PAK_DIR/kcdutils.pak"
-          
-              # Debug: Inhalt prüfen
-              if [ ! -d "$SOURCE_DIR" ]; then
-                echo "ERROR: $SOURCE_DIR does not exist!"
-                ls -R KCDUtils/Data
-                exit 1
+          # Alte .pak löschen
+          rm -f "KCDUtils/Data/kcdutils.pak"
+
+          export SOURCE_DIR="KCDUtils/Data/kcdutils"
+          export PAK_FILE="$PAK_DIR/kcdutils.pak"
+
+          if [ ! -d "$SOURCE_DIR" ]; then
+            echo "ERROR: $SOURCE_DIR does not exist!"
+            ls -R KCDUtils/Data
+            exit 1
+          fi
+
+          python3 <<EOF
+import zipfile, os
+
+base_folder = os.environ["SOURCE_DIR"]
+pak_file = os.environ["PAK_FILE"]
+
+with zipfile.ZipFile(pak_file, 'w', compression=zipfile.ZIP_STORED) as archive:
+    for root, dirs, files in os.walk(base_folder):
+        for file in files:
+            abs_path = os.path.join(root, file)
+            rel_path = os.path.relpath(abs_path, os.path.dirname(base_folder))
+            archive.write(abs_path, rel_path)
+EOF
+
+          cp "$PAK_FILE" "KCDUtils/Data/kcdutils.pak"
+
+          shopt -s dotglob
+          mkdir -p "$TMP_DIR/_kcdutils"
+          for f in *; do
+              if [[ "$f" != "$TMP_DIR" && "$f" != ".git" && "$f" != ".github" ]]; then
+                  cp -r "$f" "$TMP_DIR/_kcdutils/"
               fi
-          
-              # 1) .pak bauen
-              python3 <<EOF
-          import zipfile, os
-          
-          base_folder = os.environ["SOURCE_DIR"]
-          pak_file = os.environ["PAK_FILE"]
-          
-          with zipfile.ZipFile(pak_file, 'w', compression=zipfile.ZIP_STORED) as archive:
-              for root, dirs, files in os.walk(base_folder):
-                  for file in files:
-                      abs_path = os.path.join(root, file)
-                      rel_path = os.path.relpath(abs_path, os.path.dirname(base_folder))
-                      archive.write(abs_path, rel_path)
-          EOF
-          
-              # 2) Neue .pak ins Repo kopieren
-              cp "$PAK_FILE" "KCDUtils/Data/kcdutils.pak"
-          
-              # 3) Restliche Repo-Dateien ins temporäre Verzeichnis für ZIP
-              shopt -s dotglob
-              mkdir -p "$TMP_DIR/_kcdutils"
-              for f in *; do
-                  if [[ "$f" != "$TMP_DIR" && "$f" != ".git" && "$f" != ".github" ]]; then
-                      cp -r "$f" "$TMP_DIR/_kcdutils/"
-                  fi
-              done
-          
-              # 4) ZIP erstellen
-              cd "$TMP_DIR"
-              zip -r "../${ZIP_NAME}.zip" _kcdutils/
-              cd ..
+          done
+
+          cd "$TMP_DIR"
+          zip -r "../${ZIP_NAME}.zip" _kcdutils/
+          cd ..
+
 
 
       - name: Create GitHub Release
