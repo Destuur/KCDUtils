@@ -58,9 +58,9 @@ jobs:
           set -euo pipefail
           CURRENT=$(xmlstarlet sel -t -v "//info/version" mod.manifest || echo "0.0.0")
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-
+          
           BUMP_TYPE="${{ github.event.inputs.bump || '' }}"
-
+          
           if [ "$BUMP_TYPE" = "major" ]; then
               MAJOR=$((MAJOR + 1))
               MINOR=0
@@ -76,11 +76,11 @@ jobs:
                   PATCH=$((PATCH + 1))
               fi
           fi
-
+          
           NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-
+          
           xmlstarlet ed -L -u "//info/version" -v "$NEW_VERSION" mod.manifest
-
+          
           if [ -f README.md ]; then
             if grep -q "{{NEW_VERSION}}" README.md; then
               sed -i "s/{{NEW_VERSION}}/${NEW_VERSION}/g" README.md
@@ -89,10 +89,10 @@ jobs:
               sed -i -E "s/\\b${CUR_ESC}\\b/${NEW_VERSION}/g" README.md || true
             fi
           fi
-
+          
           echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Commit, tag and push version
+      - name: Commit, tag and push
         env:
           NEW_VERSION: ${{ steps.version.outputs.new_version }}
         run: |
@@ -110,22 +110,25 @@ jobs:
       - name: Build .pak and prepare release ZIP
         run: |
           TMP_DIR=temp__kcdutils
-          PAK_PATH="KCDUtils/Data/kcdutils.pak"
-          DATA_DIR="KCDUtils/Data/kcdutils"
+          PAK_DIR="$TMP_DIR/_kcdutils/Data"
+          PAK_FILE="$PAK_DIR/kcdutils.pak"
+          SOURCE_DIR="KCDUtils/Data/kcdutils"
 
-          # 1) Alte .pak löschen
-          rm -f "$PAK_PATH"
-
-          # 2) Temporäres Verzeichnis erstellen
+          # 1) Temporäres Verzeichnis für ZIP erstellen
           rm -rf "$TMP_DIR"
-          mkdir -p "$TMP_DIR/_kcdutils/Data"
+          mkdir -p "$PAK_DIR"
+
+          # 2) Alte .pak löschen
+          mkdir -p KCDUtils/Data
+          rm -f KCDUtils/Data/kcdutils.pak
 
           # 3) Neue .pak bauen
           python3 - <<EOF
           import zipfile, os
-          base_folder = "$DATA_DIR"
-          pak_file = "$TMP_DIR/_kcdutils/Data/kcdutils.pak"
-          os.makedirs(os.path.dirname(pak_file), exist_ok=True)
+          
+          base_folder = "$SOURCE_DIR"
+          pak_file = "$PAK_FILE"
+          
           with zipfile.ZipFile(pak_file, 'w', compression=zipfile.ZIP_STORED) as archive:
               for root, dirs, files in os.walk(base_folder):
                   for file in files:
@@ -134,11 +137,12 @@ jobs:
                       archive.write(abs_path, rel_path)
           EOF
 
-          # 4) .pak ins Repo-Verzeichnis kopieren
-          cp "$TMP_DIR/_kcdutils/Data/kcdutils.pak" "$PAK_PATH"
+          # 4) .pak ins Repo kopieren
+          cp "$PAK_FILE" "KCDUtils/Data/kcdutils.pak"
 
-          # 5) Restliche Dateien ins temporäre Verzeichnis kopieren
+          # 5) Restliche Repo-Dateien ins temporäre Verzeichnis kopieren
           shopt -s dotglob
+          mkdir -p "$TMP_DIR/_kcdutils"
           for f in *; do
               if [[ "$f" != "$TMP_DIR" && "$f" != ".git" && "$f" != ".github" ]]; then
                   cp -r "$f" "$TMP_DIR/_kcdutils/"
