@@ -150,29 +150,61 @@ function KCDUtils.OnGameplayStarted()
     local logger = KCDUtils.Logger.Factory(KCDUtils.Name)
     logger:Info("OnGameplayStarted triggered")
     KCDUtils.HasGameStarted = true
+
     for modName, modTable in pairs(KCDUtils.RegisteredMods) do
+        -- Init-Funktion sicher ausführen
         if type(modTable.Init) == "function" then
-            modTable.Init()
+            local ok, err = xpcall(modTable.Init, function(e)
+                logger:Error(("Error in Init for mod '%s': %s\n%s"):format(modName, tostring(e), debug.traceback()))
+            end)
+            if not ok then
+                logger:Error("Init xpcall failed for mod '" .. tostring(modName) .. "'")
+            end
         end
 
         -- Menü erst jetzt mit DB-Werten bauen
         local reg = KCDUtils.Menu._registeredMenus and KCDUtils.Menu._registeredMenus[modName]
         if reg then
-            KCDUtils.Menu.BuildWithDB(modTable)
+            local ok, err = pcall(KCDUtils.Menu.BuildWithDB, KCDUtils.Menu, modTable)
+            if not ok then
+                logger:Error(("Error building menu for mod '%s': %s"):format(modName, tostring(err)))
+            end
         end
 
+        -- OnGameplayStarted des Mods sicher aufrufen
         if type(modTable.OnGameplayStarted) == "function" then
-            modTable.OnGameplayStarted()
+            local ok, err = xpcall(modTable.OnGameplayStarted, function(e)
+                logger:Error(("Error in OnGameplayStarted for mod '%s': %s\n%s"):format(modName, tostring(e), debug.traceback()))
+            end)
+            if not ok then
+                logger:Error("OnGameplayStarted xpcall failed for mod '" .. tostring(modName) .. "'")
+            end
         end
 
         -- Hooks wieder registrieren
         local hooks = on_hooks[modTable]
         if hooks then
             for eventName, hookData in pairs(hooks) do
-                local eventTable = KCDUtils.Events[eventName]
-                if eventTable and type(hookData.callback) == "function" then
-                    local subscription = eventTable.AddSafe({}, hookData.callback)
+                local ok, err = pcall(function()
+                    local eventTable = KCDUtils.Events[eventName]
+                    if not eventTable or type(hookData.callback) ~= "function" then return end
+
+                    -- prefer AddSafe if available, otherwise fallback to Add
+                    local addFn = eventTable.AddSafe or eventTable.Add
+                    if type(addFn) ~= "function" then
+                        KCDUtils.Logger.Factory("KCDUtils.OnGameplayStarted"):Error(
+                            ("No Add/AddSafe found for event '%s'"):format(tostring(eventName))
+                        )
+                        return
+                    end
+
+                    local subscription = addFn({}, hookData.callback)
                     hooks[eventName].subscription = subscription
+                end)
+                if not ok then
+                    logger:Error(
+                        ("Error re-registering hook '%s' for mod '%s': %s"):format(tostring(eventName), tostring(modName), tostring(err))
+                    )
                 end
             end
         end
@@ -185,9 +217,13 @@ function KCDUtils.OnGameplayStarted()
     if KCDUtils.Events.watchLoopRunning then
         KCDUtils.Events.watchLoopRunning = false
     end
-    KCDUtils.Events.WatchLoop()
+    if KCDUtils.Events.WatchLoop then
+        KCDUtils.Events.WatchLoop()
+    end
 
-    KCDUtils.Events.GameplayStarted.Fire()
+    if KCDUtils.Events.GameplayStarted and KCDUtils.Events.GameplayStarted.Fire then
+        KCDUtils.Events.GameplayStarted.Fire()
+    end
 end
 
 local function Initialize()
