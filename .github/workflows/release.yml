@@ -59,7 +59,6 @@ jobs:
           CURRENT=$(xmlstarlet sel -t -v "//info/version" mod.manifest || echo "0.0.0")
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
           
-          # Prüfe optionalen Input von workflow_dispatch
           BUMP_TYPE="${{ github.event.inputs.bump || '' }}"
           
           if [ "$BUMP_TYPE" = "major" ]; then
@@ -69,10 +68,8 @@ jobs:
           elif [ "$BUMP_TYPE" = "minor" ]; then
               MINOR=$((MINOR + 1))
               PATCH=0
-          elif [ "$BUMP_TYPE" = "patch" ] || [ -z "$BUMP_TYPE" ]; then
-              # default logic
+          else
               if [ "$CURRENT" = "0.0.0" ]; then
-                  # erster Commit → Minor bump auf 0.1.0
                   MINOR=1
                   PATCH=0
               else
@@ -81,11 +78,8 @@ jobs:
           fi
           
           NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-          
-          # Update mod.manifest
           xmlstarlet ed -L -u "//info/version" -v "$NEW_VERSION" mod.manifest
-          
-          # README aktualisieren
+
           if [ -f README.md ]; then
             if grep -q "{{NEW_VERSION}}" README.md; then
               sed -i "s/{{NEW_VERSION}}/${NEW_VERSION}/g" README.md
@@ -94,22 +88,21 @@ jobs:
               sed -i -E "s/\\b${CUR_ESC}\\b/${NEW_VERSION}/g" README.md || true
             fi
           fi
-          
+
           echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Commit, tag and push
+      - name: Commit, tag and push version bump
         env:
           NEW_VERSION: ${{ steps.version.outputs.new_version }}
         run: |
-          set -euo pipefail
           git add mod.manifest README.md || true
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
             git commit -m "chore: bump version to ${NEW_VERSION} [skip ci]"
+            git push origin HEAD:main
           fi
           git tag -a "${NEW_VERSION}" -m "Release ${NEW_VERSION}" || true
-          git push origin HEAD:main
           git push origin --tags
 
       - name: Build .pak and prepare release ZIP
@@ -118,11 +111,11 @@ jobs:
           PAK_DIR="$TMP_DIR/_kcdutils/Data"
           PAK_FILE="$PAK_DIR/kcdutils.pak"
 
-          # 1) Sauberen temporären Ordner erstellen
+          # Sauberen temporären Ordner erstellen
           rm -rf "$TMP_DIR"
           mkdir -p "$PAK_DIR"
 
-          # 2) .pak bauen
+          # .pak bauen
           python3 - <<EOF
           import zipfile, os
           base_folder = "Data/kcdutils"
@@ -136,10 +129,7 @@ jobs:
                       archive.write(abs_path, rel_path)
           EOF
 
-          # 3) .pak ins Repo-Verzeichnis kopieren (optional commit)
-          cp "$PAK_FILE" "KCDUtils/Data/kcdutils.pak"
-
-          # 4) Restliche Repo-Dateien ins temporäre Verzeichnis kopieren
+          # Restliche Repo-Dateien ins temporäre Verzeichnis kopieren
           shopt -s dotglob
           mkdir -p "$TMP_DIR/_kcdutils"
           for f in *; do
@@ -148,7 +138,7 @@ jobs:
               fi
           done
 
-          # 5) ZIP erstellen
+          # ZIP erstellen
           cd "$TMP_DIR"
           zip -r "../${ZIP_NAME}.zip" _kcdutils/
           cd ..
