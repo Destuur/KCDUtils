@@ -116,7 +116,9 @@ function KCDUtils.RegisterMod(nameOrTable)
     -- Events initialisieren
     KCDUtils.Events[modName] = KCDUtils.Events[modName] or {}
     KCDUtils.Events.MenuChanged = KCDUtils.Events.MenuChanged or {}  -- sicherstellen
-    mod.Events = KCDUtils.Events[modName]
+    mod.Events = setmetatable({}, {
+        __index = KCDUtils.Events
+    })
 
     mod._listeners = mod._listeners or {}
 

@@ -287,62 +287,47 @@ function KCDUtils.Menu:OnApplySettings()
             if cfg.type == "value" then
                 local val = UIAction.CallFunction("Menu", -1, "GetValue", cfg.id, 0)
                 cfg.value = tonumber(string.format("%.0f", val))
-                if mod.DB then mod.DB:Set(cfg.id, cfg.value) end
-                mod.MenuConfig[cfg.id].value = cfg.value  -- zurückschreiben
             elseif cfg.type == "choice" then
                 local choiceId = UIAction.CallFunction("Menu", -1, "GetChoice", cfg.id, 0) or 0
                 cfg._selectedIndex = choiceId
                 mapBoolChoice(cfg, "toValue")
-                if mod.DB then mod.DB:Set(cfg.id, cfg.value) end
-                mod.MenuConfig[cfg.id].value = cfg.value  -- zurückschreiben
             end
         end
     end
 
-    mod.Events.MenuChanged.Trigger(mod.MenuConfig)
-    self._activeConfig = nil -- cleanup
+    mod.Events.MenuChanged.Trigger(active.entries)
+    self._activeConfig = nil
     self:OpenModOverview()
 end
-
 
 function KCDUtils.Menu:OnResetSettings()
     local mods = getModsForMenu()
     local mod = mods[self._currentModIndex]
-    if not mod or not mod.MenuConfig then 
-        return 
+    if not mod or not mod.MenuConfig then
+        return
     end
 
-    for _, cfg in ipairs(mod.MenuConfig) do
-        if cfg.type == "value" then
-            cfg.value = tonumber(string.format("%.0f", cfg.default or 0))
-            UIAction.CallFunction("Menu", -1, "SetValue", cfg.id, 0, cfg.value)
-            if mod.DB then 
-                mod.DB:Set(cfg.id, cfg.value) 
-            end
+    for key, cfg in pairs(mod.MenuConfig) do
+        if not cfg.hidden then
+            if cfg.type == "value" then
+                cfg.value = cfg.default or 0
+                UIAction.CallFunction("Menu", -1, "SetValue", cfg.id, 0, cfg.value)
 
-        elseif cfg.type == "choice" then
-            if cfg.valueMap then
-                -- Boolean-Mapping: Standardwert direkt anwenden
-                cfg.value = cfg.default
-                mapBoolChoice(cfg, "toIndex") -- setzt _selectedIndex passend
-            else
-                -- normale Choice über defaultChoiceId (1-basiert → 0-basiert)
-                cfg._selectedIndex = (cfg.defaultChoiceId or 1) - 1
-                mapBoolChoice(cfg, "toValue")
-            end
+            elseif cfg.type == "choice" then
+                if cfg.valueMap then
+                    cfg.value = cfg.default
+                    mapBoolChoice(cfg, "toIndex")
+                else
+                    cfg._selectedIndex = (cfg.defaultChoiceId or 1) - 1
+                    mapBoolChoice(cfg, "toValue")
+                end
 
-            UIAction.CallFunction("Menu", -1, "SetChoice", cfg.id, 0, cfg._selectedIndex or 0)
-            if mod.DB then 
-                mod.DB:Set(cfg.id, cfg.value) 
+                UIAction.CallFunction("Menu", -1, "SetChoice", cfg.id, 0, cfg._selectedIndex or 0)
             end
-            System.LogAlways(("[KCDUtils][OnResetSettings] Reset choice: %s = %s (index=%s)"):format(
-                cfg.id, tostring(cfg.value), tostring(cfg._selectedIndex)))
         end
     end
-
-    mod.Events.MenuChanged.Trigger(mod.MenuConfig)
+    mod.Events.MenuChanged.Trigger()
 end
-
 
 function KCDUtils.Menu:UpdateConfigValue(id, value)
     local active = self._activeConfig
