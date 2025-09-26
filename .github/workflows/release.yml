@@ -112,17 +112,21 @@ jobs:
           git push origin HEAD:main
           git push origin --tags
 
-      - name: Prepare folder for ZIP and create .pak
+      - name: Build .pak and prepare ZIP
         run: |
-          rm -rf temp__kcdutils
-          mkdir -p temp__kcdutils/_kcdutils/Data
-
-          # .pak erstellen
+          TMP_DIR=temp__kcdutils
+          PAK_DIR="$TMP_DIR/_kcdutils/Data"
+          PAK_FILE="$PAK_DIR/kcdutils.pak"
+      
+          # 1) Sauberen temporären Ordner erstellen
+          rm -rf "$TMP_DIR"
+          mkdir -p "$PAK_DIR"
+      
+          # 2) .pak bauen
           python3 - <<EOF
           import zipfile, os
-          base_folder = "Data/kcdutils"  # der Ordner, dessen Inhalt in .pak soll
-          pak_file = "temp__kcdutils/_kcdutils/Data/kcdutils.pak"
-          os.makedirs(os.path.dirname(pak_file), exist_ok=True)
+          base_folder = "Data/kcdutils"
+          pak_file = "$PAK_FILE"
           with zipfile.ZipFile(pak_file, 'w', compression=zipfile.ZIP_STORED) as archive:
               for root, dirs, files in os.walk(base_folder):
                   for file in files:
@@ -130,12 +134,12 @@ jobs:
                       rel_path = os.path.relpath(abs_path, base_folder)
                       archive.write(abs_path, rel_path)
           EOF
-
-          # Restliche Dateien in _kcdutils packen
+      
+          # 3) Restliche Dateien ins temporäre Verzeichnis kopieren
           shopt -s dotglob
           for f in *; do
-            if [[ "$f" != "temp__kcdutils" && "$f" != ".git" && "$f" != ".github" ]]; then
-              cp -r "$f" temp__kcdutils/_kcdutils/
+            if [[ "$f" != "$TMP_DIR" && "$f" != ".git" && "$f" != ".github" ]]; then
+              cp -r "$f" "$TMP_DIR/_kcdutils/"
             fi
           done
 
