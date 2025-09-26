@@ -58,9 +58,9 @@ jobs:
           set -euo pipefail
           CURRENT=$(xmlstarlet sel -t -v "//info/version" mod.manifest || echo "0.0.0")
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-          
+
           BUMP_TYPE="${{ github.event.inputs.bump || '' }}"
-          
+
           if [ "$BUMP_TYPE" = "major" ]; then
               MAJOR=$((MAJOR + 1))
               MINOR=0
@@ -68,7 +68,7 @@ jobs:
           elif [ "$BUMP_TYPE" = "minor" ]; then
               MINOR=$((MINOR + 1))
               PATCH=0
-          else
+          elif [ "$BUMP_TYPE" = "patch" ] || [ -z "$BUMP_TYPE" ]; then
               if [ "$CURRENT" = "0.0.0" ]; then
                   MINOR=1
                   PATCH=0
@@ -76,8 +76,9 @@ jobs:
                   PATCH=$((PATCH + 1))
               fi
           fi
-          
+
           NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+
           xmlstarlet ed -L -u "//info/version" -v "$NEW_VERSION" mod.manifest
 
           if [ -f README.md ]; then
@@ -91,35 +92,39 @@ jobs:
 
           echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Commit, tag and push version bump
+      - name: Commit, tag and push version
         env:
           NEW_VERSION: ${{ steps.version.outputs.new_version }}
         run: |
+          set -euo pipefail
           git add mod.manifest README.md || true
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
             git commit -m "chore: bump version to ${NEW_VERSION} [skip ci]"
-            git push origin HEAD:main
           fi
           git tag -a "${NEW_VERSION}" -m "Release ${NEW_VERSION}" || true
+          git push origin HEAD:main
           git push origin --tags
 
       - name: Build .pak and prepare release ZIP
         run: |
           TMP_DIR=temp__kcdutils
-          PAK_DIR="$TMP_DIR/_kcdutils/Data"
-          PAK_FILE="$PAK_DIR/kcdutils.pak"
+          PAK_PATH="KCDUtils/Data/kcdutils.pak"
+          DATA_DIR="KCDUtils/Data/kcdutils"
 
-          # Sauberen temporären Ordner erstellen
+          # 1) Alte .pak löschen
+          rm -f "$PAK_PATH"
+
+          # 2) Temporäres Verzeichnis erstellen
           rm -rf "$TMP_DIR"
-          mkdir -p "$PAK_DIR"
+          mkdir -p "$TMP_DIR/_kcdutils/Data"
 
-          # .pak bauen
+          # 3) Neue .pak bauen
           python3 - <<EOF
           import zipfile, os
-          base_folder = "Data/kcdutils"
-          pak_file = "$PAK_FILE"
+          base_folder = "$DATA_DIR"
+          pak_file = "$TMP_DIR/_kcdutils/Data/kcdutils.pak"
           os.makedirs(os.path.dirname(pak_file), exist_ok=True)
           with zipfile.ZipFile(pak_file, 'w', compression=zipfile.ZIP_STORED) as archive:
               for root, dirs, files in os.walk(base_folder):
@@ -129,16 +134,18 @@ jobs:
                       archive.write(abs_path, rel_path)
           EOF
 
-          # Restliche Repo-Dateien ins temporäre Verzeichnis kopieren
+          # 4) .pak ins Repo-Verzeichnis kopieren
+          cp "$TMP_DIR/_kcdutils/Data/kcdutils.pak" "$PAK_PATH"
+
+          # 5) Restliche Dateien ins temporäre Verzeichnis kopieren
           shopt -s dotglob
-          mkdir -p "$TMP_DIR/_kcdutils"
           for f in *; do
               if [[ "$f" != "$TMP_DIR" && "$f" != ".git" && "$f" != ".github" ]]; then
                   cp -r "$f" "$TMP_DIR/_kcdutils/"
               fi
           done
 
-          # ZIP erstellen
+          # 6) ZIP erstellen
           cd "$TMP_DIR"
           zip -r "../${ZIP_NAME}.zip" _kcdutils/
           cd ..
