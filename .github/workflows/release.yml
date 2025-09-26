@@ -112,16 +112,16 @@ jobs:
           git push origin HEAD:main
           git push origin --tags
 
-      - name: Build .pak and prepare ZIP
+      - name: Build .pak, commit and prepare ZIP
         run: |
           TMP_DIR=temp__kcdutils
           PAK_DIR="$TMP_DIR/_kcdutils/Data"
           PAK_FILE="$PAK_DIR/kcdutils.pak"
-      
+
           # 1) Sauberen temporären Ordner erstellen
           rm -rf "$TMP_DIR"
           mkdir -p "$PAK_DIR"
-      
+
           # 2) .pak bauen
           python3 - <<EOF
           import zipfile, os
@@ -134,14 +134,28 @@ jobs:
                       rel_path = os.path.relpath(abs_path, base_folder)
                       archive.write(abs_path, rel_path)
           EOF
-      
-          # 3) Restliche Dateien ins temporäre Verzeichnis kopieren
-          shopt -s dotglob
-          for f in *; do
-            if [[ "$f" != "$TMP_DIR" && "$f" != ".git" && "$f" != ".github" ]]; then
-              cp -r "$f" "$TMP_DIR/_kcdutils/"
-            fi
-          done
+          
+                    # 3) .pak ins Repo kopieren
+                    cp "$PAK_FILE" "KCDUtils/Data/kcdutils.pak"
+          
+                    # 4) Commit nur, wenn sich etwas geändert hat
+                    git add KCDUtils/Data/kcdutils.pak
+                    if ! git diff --cached --quiet; then
+                        git commit -m "chore: rebuild kcdutils.pak for version $NEW_VERSION [skip ci]"
+                        git push origin HEAD:main
+                    else
+                        echo "No changes in kcdutils.pak, skipping commit"
+                    fi
+          
+                    # 5) Restliche Dateien ins temporäre Verzeichnis kopieren für ZIP
+                    shopt -s dotglob
+                    mkdir -p "$TMP_DIR/_kcdutils"
+                    for f in *; do
+                        if [[ "$f" != "$TMP_DIR" && "$f" != ".git" && "$f" != ".github" ]]; then
+                            cp -r "$f" "$TMP_DIR/_kcdutils/"
+                        fi
+                    done
+
 
       - name: Create ZIP
         env:
