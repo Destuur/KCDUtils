@@ -295,7 +295,7 @@ function KCDUtils.Menu:OnApplySettings()
         end
     end
 
-    mod.Events.MenuChanged.Trigger(active.entries)
+    mod.OnMenuChanged:Trigger(active.entries)
     self._activeConfig = nil
     self:OpenModOverview()
 end
@@ -326,7 +326,7 @@ function KCDUtils.Menu:OnResetSettings()
             end
         end
     end
-    mod.Events.MenuChanged.Trigger()
+    mod.OnMenuChanged:Trigger()
 end
 
 function KCDUtils.Menu:UpdateConfigValue(id, value)

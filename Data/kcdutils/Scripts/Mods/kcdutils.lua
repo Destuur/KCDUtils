@@ -46,6 +46,47 @@ end
 
 local meta_on_handler = {}
 
+local function createLocalEvent(mod, eventName)
+    return {
+        listeners = {},
+
+        Add = function(self, callback)
+            for i = #self.listeners, 1, -1 do
+                if self.listeners[i].callback == callback then
+                    table.remove(self.listeners, i)
+                end
+            end
+            local sub = { callback = callback, once = false, isPaused = false }
+            table.insert(self.listeners, sub)
+            return sub
+        end,
+
+        Remove = function(self, sub)
+            for i = #self.listeners, 1, -1 do
+                if self.listeners[i] == sub then
+                    table.remove(self.listeners, i)
+                    break
+                end
+            end
+        end,
+
+        Trigger = function(self, arg)
+            for i = #self.listeners, 1, -1 do
+                local sub = self.listeners[i]
+                if not sub.isPaused then
+                    local ok, err = pcall(sub.callback, arg)
+                    if not ok then
+                        KCDUtils.Logger.Factory(mod.Name):Error(
+                            ("%s callback error: %s"):format(eventName, tostring(err))
+                        )
+                    end
+                    if sub.once then self:Remove(sub) end
+                end
+            end
+        end
+    }
+end
+
 function meta_on_handler.__index(mod, key)
     if key == "Add" then
         return function(_, eventName, fn, config)
@@ -113,31 +154,28 @@ function KCDUtils.RegisterMod(nameOrTable)
     loggers[mod] = KCDUtils.Logger.Factory(modName)
     dbs[mod]     = KCDUtils.DB.Factory(modName)
 
-    -- Events initialisieren
+    -- Globale Events vorbereiten
     KCDUtils.Events[modName] = KCDUtils.Events[modName] or {}
-    KCDUtils.Events.MenuChanged = KCDUtils.Events.MenuChanged or {}  -- sicherstellen
-    mod.Events = setmetatable({}, {
-        __index = KCDUtils.Events
-    })
+    mod.Events = setmetatable({}, { __index = KCDUtils.Events })
 
+    -- --------------------------
+    -- Lokale Events automatisch hinzufügen
+    -- --------------------------
+    mod.OnMenuChanged = createLocalEvent(mod, "OnMenuChanged")
+    -- später kannst du weitere vorkonfigurierte Events hinzufügen:
+    -- mod.OnSomething = createLocalEvent(mod, "OnSomething")
+
+    -- --------------------------
+    -- Setup globales "On" Handler
+    -- --------------------------
+    local handler = setupOnHandler(mod)
     mod._listeners = mod._listeners or {}
 
     setmetatable(mod, {
         __index = function(tbl, key)
             if key == "Logger" then return loggers[tbl] end
             if key == "DB"     then return dbs[tbl]     end
-            if key == "On" then
-                local handler = setupOnHandler(tbl)
-                -- Automatisch alle bekannten Events vorbereiten
-                for eventName,_ in pairs(KCDUtils.Events) do
-                    if handler[eventName] == nil then
-                        handler[eventName] = setmetatable({}, {__call = function(_, fn)
-                            return KCDUtils.Events[eventName].Add(tbl, {}, fn)
-                        end})
-                    end
-                end
-                return handler
-            end
+            if key == "On"     then return handler end -- global
             return rawget(tbl, key)
         end,
         __newindex = function(tbl, key, val)

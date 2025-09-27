@@ -1,23 +1,37 @@
 ---@meta
 ---@class (exact) KCDUtils*on_handler
----@field public CombatStateChanged fun(data:table) Event fired when the combat state changes
----@field public DialogStateChanged fun(data:table) Event fired when the dialog state changes
----@field public DistanceTravelled fun(data:table) Event fired when the player travels a certain distance
----@field public MoneyThresholdReached fun(data:table) Event fired when the player's money crosses a certain threshold (up or down)
----@field public MountedStateChanged fun(data:table) Event fired when the player's mounted state changes
----@field public NearbyEntitiesDetected fun(data:table) Event fired when nearby entities are detected
----@field public OnGameplayStarted fun() Event fired when gameplay starts (alias for GameplayStarted)
----@field public RainThresholdReached fun(data:table) Event fired when the rain intensity crosses a certain threshold (up or down)
----@field public SkillLevelReached fun(data:table) Event fired when a skill reaches a certain level
----@field public StateThresholdDetected fun(data:table) Event fired when a game state crosses a certain threshold (up or down)
----@field public TimeOfDayReached fun(data:table) Event fired when a certain time of day is reached
----@field public UnderRoofChanged fun(data:table) Event fired when the player's under-roof state changes
----@field public WeaponStateChanged fun(data:table) Event fired when the player's weapon state changes
----@field public WorldDayOfWeekReached fun(data:table) Event fired when a certain day of the week is reached
----@field public Add fun(self, eventName:string, callback:fun(data:table)):table Subscribe to an event. Returns a subscription handle
----@field public Remove fun(self, subscription:table) Remove a subscription returned by Add
----@field public Pause fun(self, subscription:table) Pause a subscription
----@field public Resume fun(self, subscription:table) Resume a paused subscription
+---@field public CombatStateChanged fun(data:table)
+---@field public DialogStateChanged fun(data:table)
+---@field public DistanceTravelled fun(data:table)
+---@field public MoneyThresholdReached fun(data:table)
+---@field public MountedStateChanged fun(data:table)
+---@field public NearbyEntitiesDetected fun(data:table)
+---@field public OnGameplayStarted fun()
+---@field public RainThresholdReached fun(data:table)
+---@field public SkillLevelReached fun(data:table)
+---@field public StateThresholdDetected fun(data:table)
+---@field public TimeOfDayReached fun(data:table)
+---@field public UnderRoofChanged fun(data:table)
+---@field public WeaponStateChanged fun(data:table)
+---@field public WorldDayOfWeekReached fun(data:table)
+---@overload fun(self:KCDUtils*on_handler, eventName:string, callback:fun(data:table))
+---@field public Add fun(self:KCDUtils*on_handler, eventName:string, callback:fun(data:table), config:table|nil)
+---@field public Remove fun(self:KCDUtils*on_handler, subscription:KCDUtilsEventSubscription)
+---@field public Pause fun(self:KCDUtils*on_handler, subscription:KCDUtilsEventSubscription)
+---@field public Resume fun(self:KCDUtils*on_handler, subscription:KCDUtilsEventSubscription)
+
+---@class KCDUtilsEventSubscription
+---@field callback fun(...):void
+---@field once boolean
+---@field isPaused boolean
+
+---@class (exact) KCDUtilsEvent
+---@field Add fun(self:KCDUtilsEvent, callback:fun(...):void, config:table|nil)
+---@field Remove fun(self:KCDUtilsEvent, subscription:KCDUtilsEventSubscription)
+---@field Trigger fun(self:KCDUtilsEvent, ...):void
+---@field Pause fun(self:KCDUtilsEvent, subscription:KCDUtilsEventSubscription)
+---@field Resume fun(self:KCDUtilsEvent, subscription:KCDUtilsEventSubscription)
+
 
 local dummy = {}
 return dummy
