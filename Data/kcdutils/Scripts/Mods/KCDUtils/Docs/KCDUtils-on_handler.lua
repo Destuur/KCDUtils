@@ -1,6 +1,7 @@
 ---@meta
 ---@class (exact) KCDUtils*on_handler
 ---@field public CombatStateChanged fun(data:table)
+---@field public CarryCorpseChanged fun(data:table)
 ---@field public DialogStateChanged fun(data:table)
 ---@field public DistanceTravelled fun(data:table)
 ---@field public MoneyThresholdReached fun(data:table)
@@ -8,6 +9,7 @@
 ---@field public NearbyEntitiesDetected fun(data:table)
 ---@field public OnGameplayStarted fun()
 ---@field public RainThresholdReached fun(data:table)
+---@field public SittingChanged fun(data:table)
 ---@field public SkillLevelReached fun(data:table)
 ---@field public StateThresholdDetected fun(data:table)
 ---@field public TimeOfDayReached fun(data:table)
