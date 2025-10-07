@@ -2,8 +2,209 @@ KCDUtils = KCDUtils or {}
 --- @class KCDUtilsEvents
 KCDUtils.Events = KCDUtils.Events or {}
 KCDUtils.Events.updaters = KCDUtils.Events.updaters or {}
+KCDUtils.Events._OnUsedHooks = KCDUtils.Events._OnUsedHooks or {}
+KCDUtils.Events._MethodHooks = KCDUtils.Events._MethodHooks or {}
 KCDUtils.Events.watchLoopRunning = KCDUtils.Events.watchLoopRunning or false
 KCDUtils.Events.availableEvents = {}
+
+--- Registers an event that fires when <globalName>.<methodName> is called
+--- @param globalName string  e.g. "Horse"
+--- @param methodName string  e.g. "OnButcher"
+--- @param eventName  string  e.g. "ButcherStarted" (listeners attach via mod.On.ButcherStarted = function(ev) end)
+--- @param opts table? { phase="before"|"after"|"both" (def "before"), retryMs=500, maxAttempts=120 }
+function KCDUtils.Events.RegisterMethodEvent(globalName, methodName, eventName, opts)
+  opts = opts or {}
+  local phase       = opts.phase or "before"
+  local retryMs     = tonumber(opts.retryMs) or 500
+  local maxAttempts = tonumber(opts.maxAttempts) or 120
+
+  local evt = KCDUtils.Events.CreateEvent(eventName)
+  KCDUtils.Events.RegisterEvent(eventName, KCDUtils.Name,
+    ("Fires when %s.%s is called"):format(globalName, methodName),
+    {"table","user","slot","name","method","args"})
+
+  local storeKey = ("%s.%s"):format(globalName, methodName)
+  local store = KCDUtils.Events._MethodHooks
+  if store[storeKey] and store[storeKey].hooked then
+    return evt
+  end
+  store[storeKey] = store[storeKey] or { attempts = 0, hooked = false }
+
+  local logger = KCDUtils.Logger.Factory("KCDUtils.Events."..methodName)
+  local function tryHook()
+    local s = store[storeKey]; s.attempts = s.attempts + 1
+    local t = _G[globalName]
+    local fn = t and t[methodName]
+
+    if t and type(fn) == "function" and not t["_orig_"..methodName] then
+      local orig = fn
+      t["_orig_"..methodName] = orig
+
+      t[methodName] = function(self, user, ...)
+        if phase == "before" or phase == "both" then
+          evt.Trigger({ table=self, user=user, slot=nil, name=globalName, method=methodName, args={...} })
+        end
+
+        local result = orig(self, user, ...)
+        if phase == "after" or phase == "both" then
+          evt.Trigger({ table=self, user=user, slot=nil, name=globalName, method=methodName, args={...}, result=result })
+        end
+        return result
+      end
+
+      s.hooked = true
+      logger:Info(("Hooked %s.%s (%s)"):format(globalName, methodName, phase))
+      return
+    end
+
+    if s.attempts < maxAttempts then
+      Script.SetTimer(retryMs, tryHook)
+    else
+      logger:Error(("Failed to hook %s.%s after %d attempts"):format(globalName, methodName, maxAttempts))
+    end
+  end
+
+  tryHook()
+  return evt
+end
+
+--- Scannt _G und hookt alle Tabellen mit OnButcher; feuert EIN gemeinsames Event.
+--- @param eventName string e.g. "ButcherStarted"
+--- @param opts table? same opts; phase default "before"
+function KCDUtils.Events.RegisterAnyOnButcherEvent(eventName, opts)
+  opts = opts or {}
+  local phase   = (opts.phase or "after"):lower()
+  local retryMs = tonumber(opts.retryMs) or 500
+  local logger  = KCDUtils.Logger.Factory("KCDUtils.Events.AnyOnButcher")
+
+  local evt = KCDUtils.Events.CreateEvent(eventName)
+  KCDUtils.Events.RegisterEvent(
+    eventName, KCDUtils.Name,
+    "Fires when BasicAnimal.OnButcher / <subclass>.OnButcher is called",
+    {"class","entity","user","method"}
+  )
+
+  local classes = {
+    "BasicAnimal","Horse","InventoryDummyHorse","WildDog","Raven","Pig","SheepEwe",
+    "RedDeerDoe","RedDeerStag","RoeDeerHind","RoeDeerBuck","Hare","InventoryDummyDog",
+    "Wolf","Hen","SheepRam","Dog","CattleCow","CattleBull","Boar",
+  }
+
+  local function wrapMethod(tbl, methodName, hookedClassName)
+    local fn = rawget(tbl, methodName)
+    if type(fn) ~= "function" then return false end
+    if tbl["_orig_"..methodName] then return false end
+
+    local orig = fn
+    tbl["_orig_"..methodName] = orig
+
+    tbl[methodName] = function(self, user, ...)
+        local realClass =
+            (self and self.class)
+            or (self and self.GetName and self:GetName())
+            or hookedClassName
+            or "Unknown"
+
+        if phase == "before" or phase == "both" then
+        evt.Trigger({ class = realClass, entity = self, user = user, method = methodName })
+        end
+
+        local ok, res = pcall(orig, self, user, ...)
+        if not ok then
+        logger:Error(("OnButcher %s crashed: %s"):format(tostring(realClass), tostring(res)))
+        end
+
+        if phase == "after" or phase == "both" then
+        if not self.__kcdutils_butcherFired then
+            self.__kcdutils_butcherFired = true
+            evt.Trigger({ class = realClass, entity = self, user = user, method = methodName })
+            Script.SetTimer(1500, function()
+            if self then self.__kcdutils_butcherFired = nil end
+            end)
+        end
+        end
+        return res
+    end
+
+    logger:Info(("Hooked %s.%s"):format(hookedClassName or "?", methodName))
+    return true
+    end
+
+  local consecutiveNoNew = 0
+  local function tryHookCore()
+    local newCount = 0
+    local BA = _G.BasicAnimal
+    if BA then
+      if wrapMethod(BA, "OnButcher", "BasicAnimal") then newCount = newCount + 1 end
+    end
+    for _, name in ipairs(classes) do
+      local t = _G[name]
+      if t then
+        if wrapMethod(t, "OnButcher", name) then newCount = newCount + 1 end
+      end
+    end
+
+    if newCount == 0 then consecutiveNoNew = consecutiveNoNew + 1 else consecutiveNoNew = 0 end
+    if consecutiveNoNew < 10 then Script.SetTimer(retryMs, tryHookCore) end
+  end
+
+  tryHookCore()
+  return evt
+end
+
+--- Registers an event, that gets triggered, when <globalName>.OnUsed gets called
+--- @param globalName string  (z.B. "Smithery", "AlchemyTable")
+--- @param eventName  string  (z.B. "SmitheryStarted", "AlchemyStarted")
+--- @param opts       table?  { phase = "before"|"after" (default "before"), retryMs=500, maxAttempts=120 }
+function KCDUtils.Events.RegisterOnUsedEvent(globalName, eventName, opts)
+    opts = opts or {}
+    local phase       = opts.phase or "before"
+    local retryMs     = tonumber(opts.retryMs) or 500
+    local maxAttempts = tonumber(opts.maxAttempts) or 120
+
+    local evt = KCDUtils.Events.CreateEvent(eventName)
+    KCDUtils.Events.RegisterEvent(eventName, KCDUtils.Name, "Fires when "..globalName..".OnUsed is called", {"table","user","slot","name"})
+
+    local store = KCDUtils.Events._OnUsedHooks
+    if store[globalName] and store[globalName].hooked then
+        return evt
+    end
+    store[globalName] = store[globalName] or { attempts = 0, hooked = false }
+
+    local logger = KCDUtils.Logger.Factory("KCDUtils.Events.OnUsed")
+    local function tryHook()
+        local s = store[globalName]
+        s.attempts = s.attempts + 1
+
+        local t = _G[globalName]
+        if t and type(t.OnUsed) == "function" and not t._orig_OnUsed then
+            local orig = t.OnUsed
+            t._orig_OnUsed = orig
+            t.OnUsed = function(self, user, slot)
+                if phase == "before" then
+                    evt.Trigger({ table=self, user=user, slot=slot, name=globalName })
+                end
+                local result = orig(self, user, slot)
+                if phase == "after" then
+                    evt.Trigger({ table=self, user=user, slot=slot, name=globalName })
+                end
+                return result
+            end
+            s.hooked = true
+            logger:Info(("Hooked %s.OnUsed (%s)"):format(globalName, phase))
+            return
+        end
+
+        if s.attempts < maxAttempts then
+            Script.SetTimer(retryMs, tryHook)
+        else
+            logger:Error(("Failed to hook %s.OnUsed after %d attempts"):format(globalName, maxAttempts))
+        end
+    end
+
+    tryHook()
+    return evt
+end
 
 --- Creates a new custom event or returns an existing one
 --- @param eventName string Name of the event

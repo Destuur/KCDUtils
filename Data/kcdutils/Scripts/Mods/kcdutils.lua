@@ -87,58 +87,50 @@ local function createLocalEvent(mod, eventName)
     }
 end
 
-function meta_on_handler.__index(mod, key)
+function meta_on_handler.__index(handler, key)
     if key == "Add" then
         return function(_, eventName, fn, config)
-            local eventTable = KCDUtils.Events[eventName]
+            local owner = handler.__owner or handler
+            local eventTable = KCDUtils.Events[eventName] or (KCDUtils.Events.CreateEvent and KCDUtils.Events.CreateEvent(eventName))
             if not eventTable then return nil end
-            on_hooks[mod] = on_hooks[mod] or {}
+            on_hooks[owner] = on_hooks[owner] or {}
             local subscription = eventTable.Add(config or {}, fn)
-            on_hooks[mod][eventName] = { subscription = subscription, callback = fn }
+            on_hooks[owner][eventName] = { subscription = subscription, callback = fn }
             return wrapSubscription(eventTable, subscription)
         end
     end
-
-    on_hooks[mod] = on_hooks[mod] or {}
-    local hook = on_hooks[mod][key]
+    local owner = handler.__owner or handler
+    on_hooks[owner] = on_hooks[owner] or {}
+    local hook = on_hooks[owner][key]
     if hook then
         return wrapSubscription(KCDUtils.Events[key], hook.subscription)
     end
     return nil
 end
 
-function meta_on_handler.__newindex(mod, key, val)
-    local eventTable = KCDUtils.Events[key]
+function meta_on_handler.__newindex(handler, key, val)
+    local owner = handler.__owner or handler
+    local eventTable = KCDUtils.Events[key] or (KCDUtils.Events.CreateEvent and KCDUtils.Events.CreateEvent(key))
     if not eventTable then
-        local logger = KCDUtils.Logger.Factory(mod.Name or "UnknownMod")
-        logger:Error("Tried to bind to unknown event: " .. tostring(key))
+        KCDUtils.Logger.Factory((owner and owner.Name) or "UnknownMod"):Error("Tried to bind to unknown event: "..tostring(key))
         return
     end
-
-    on_hooks[mod] = on_hooks[mod] or {}
-    local current = on_hooks[mod][key]
-
+    on_hooks[owner] = on_hooks[owner] or {}
+    local current = on_hooks[owner][key]
     if val == nil and current then
-        eventTable.Remove(current.subscription)
-        on_hooks[mod][key] = nil
-        return
+        eventTable.Remove(current.subscription); on_hooks[owner][key] = nil; return
     end
-
-    if current then
-        eventTable.Remove(current.subscription)
-        on_hooks[mod][key] = nil
-    end
-
+    if current then eventTable.Remove(current.subscription); on_hooks[owner][key] = nil end
     if type(val) == "function" then
         local subscription = eventTable.Add({}, val)
-        on_hooks[mod][key] = { subscription = subscription, callback = val }
+        on_hooks[owner][key] = { subscription = subscription, callback = val }
     end
 end
 
 local function setupOnHandler(mod)
     if on_handlers[mod] then return on_handlers[mod] end
     on_hooks[mod] = on_hooks[mod] or {}
-    local handler = setmetatable({}, meta_on_handler)
+    local handler = setmetatable({ __owner = mod }, meta_on_handler)
     on_handlers[mod] = handler
     return handler
 end
@@ -154,20 +146,10 @@ function KCDUtils.RegisterMod(nameOrTable)
     loggers[mod] = KCDUtils.Logger.Factory(modName)
     dbs[mod]     = KCDUtils.DB.Factory(modName)
 
-    -- Globale Events vorbereiten
     KCDUtils.Events[modName] = KCDUtils.Events[modName] or {}
     mod.Events = setmetatable({}, { __index = KCDUtils.Events })
 
-    -- --------------------------
-    -- Lokale Events automatisch hinzufügen
-    -- --------------------------
     mod.OnMenuChanged = createLocalEvent(mod, "OnMenuChanged")
-    -- später kannst du weitere vorkonfigurierte Events hinzufügen:
-    -- mod.OnSomething = createLocalEvent(mod, "OnSomething")
-
-    -- --------------------------
-    -- Setup globales "On" Handler
-    -- --------------------------
     local handler = setupOnHandler(mod)
     mod._listeners = mod._listeners or {}
 
@@ -175,7 +157,7 @@ function KCDUtils.RegisterMod(nameOrTable)
         __index = function(tbl, key)
             if key == "Logger" then return loggers[tbl] end
             if key == "DB"     then return dbs[tbl]     end
-            if key == "On"     then return handler end -- global
+            if key == "On"     then return handler end
             return rawget(tbl, key)
         end,
         __newindex = function(tbl, key, val)
@@ -191,18 +173,52 @@ function KCDUtils.OnGameplayStarted()
     logger:Info("OnGameplayStarted triggered")
     KCDUtils.HasGameStarted = true
 
-    for modName, modTable in pairs(KCDUtils.RegisteredMods) do
-        -- Init-Funktion sicher ausführen
-        if type(modTable.Init) == "function" then
-            local ok, err = xpcall(modTable.Init, function(e)
-                logger:Error(("Error in Init for mod '%s': %s\n%s"):format(modName, tostring(e), debug.traceback()))
-            end)
-            if not ok then
-                logger:Error("Init xpcall failed for mod '" .. tostring(modName) .. "'")
+    KCDUtils.Events.RegisterOnUsedEvent("Smithery",     "SmitheryStarted",  { phase = "before" })
+    KCDUtils.Events.RegisterOnUsedEvent("AlchemyTable", "AlchemyStarted",   { phase = "before" })
+    KCDUtils.Events.RegisterAnyOnButcherEvent("ButcherStarted", { phase = "after" })
+
+    local function rebindOnHandlersForMod(modTable, modName)
+        local primary = on_hooks[modTable]
+
+        local handler = on_handlers[modTable]
+        local altA    = handler and on_hooks[handler] or nil
+        local altB    = (modTable.On and modTable.On ~= handler) and on_hooks[modTable.On] or nil
+
+        local sources = { primary, altA, altB }
+        local seen = {}
+
+        for _, src in ipairs(sources) do
+            if src then
+                for eventName, hookData in pairs(src) do
+                    if not seen[eventName] and type(hookData.callback) == "function" then
+                        local eventTable = KCDUtils.Events[eventName] or KCDUtils.Events.CreateEvent(eventName)
+                        local addFn = eventTable.AddSafe or eventTable.Add
+                        if type(addFn) ~= "function" then
+                            KCDUtils.Logger.Factory("KCDUtils.OnGameplayStarted")
+                                :Error(("No Add/AddSafe found for event '%s'"):format(tostring(eventName)))
+                        else
+                            local ok, sub = pcall(addFn, {}, hookData.callback)
+                            if ok and sub then
+                                hookData.subscription = sub
+                                seen[eventName] = true
+                            else
+                                logger:Error(("Failed to bind '%s' for mod '%s'"):format(tostring(eventName), tostring(modName)))
+                            end
+                        end
+                    end
+                end
             end
         end
+    end
 
-        -- Menü erst jetzt mit DB-Werten bauen
+    for modName, modTable in pairs(KCDUtils.RegisteredMods) do
+        if type(modTable.Init) == "function" then
+            local ok = xpcall(modTable.Init, function(e)
+                logger:Error(("Error in Init for mod '%s': %s\n%s"):format(modName, tostring(e), debug.traceback()))
+            end)
+            if not ok then logger:Error("Init xpcall failed for mod '" .. tostring(modName) .. "'") end
+        end
+
         local reg = KCDUtils.Menu._registeredMenus and KCDUtils.Menu._registeredMenus[modName]
         if reg then
             local ok, err = pcall(KCDUtils.Menu.BuildWithDB, KCDUtils.Menu, modTable)
@@ -211,49 +227,20 @@ function KCDUtils.OnGameplayStarted()
             end
         end
 
-        -- OnGameplayStarted des Mods sicher aufrufen
         if type(modTable.OnGameplayStarted) == "function" then
-            local ok, err = xpcall(modTable.OnGameplayStarted, function(e)
+            local ok = xpcall(modTable.OnGameplayStarted, function(e)
                 logger:Error(("Error in OnGameplayStarted for mod '%s': %s\n%s"):format(modName, tostring(e), debug.traceback()))
             end)
-            if not ok then
-                logger:Error("OnGameplayStarted xpcall failed for mod '" .. tostring(modName) .. "'")
-            end
+            if not ok then logger:Error("OnGameplayStarted xpcall failed for mod '" .. tostring(modName) .. "'") end
         end
 
-        -- Hooks wieder registrieren
-        local hooks = on_hooks[modTable]
-        if hooks then
-            for eventName, hookData in pairs(hooks) do
-                local ok, err = pcall(function()
-                    local eventTable = KCDUtils.Events[eventName]
-                    if not eventTable or type(hookData.callback) ~= "function" then return end
-
-                    -- prefer AddSafe if available, otherwise fallback to Add
-                    local addFn = eventTable.AddSafe or eventTable.Add
-                    if type(addFn) ~= "function" then
-                        KCDUtils.Logger.Factory("KCDUtils.OnGameplayStarted"):Error(
-                            ("No Add/AddSafe found for event '%s'"):format(tostring(eventName))
-                        )
-                        return
-                    end
-
-                    local subscription = addFn({}, hookData.callback)
-                    hooks[eventName].subscription = subscription
-                end)
-                if not ok then
-                    logger:Error(
-                        ("Error re-registering hook '%s' for mod '%s': %s"):format(tostring(eventName), tostring(modName), tostring(err))
-                    )
-                end
-            end
-        end
+        rebindOnHandlersForMod(modTable, modName)
     end
 
-    -- WatchLoop & DistanceTravelled Reset
     if KCDUtils.Events.DistanceTravelled and KCDUtils.Events.DistanceTravelled.ResetListeners then
         KCDUtils.Events.DistanceTravelled.ResetListeners()
     end
+
     if KCDUtils.Events.watchLoopRunning then
         KCDUtils.Events.watchLoopRunning = false
     end

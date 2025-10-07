@@ -16,6 +16,7 @@
     "undefined-doc-name",
     "redundant-parameter",
     "missing-fields",
-    "ambiguity-1"
+    "ambiguity-1",
+    "undefined-field"
   ]
 }
